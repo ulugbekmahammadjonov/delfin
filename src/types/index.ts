@@ -143,4 +143,7 @@ export interface AppContextType {
   setIsShiftModalOpen: (open: boolean) => void;
   quickRegPrefill: any;
   setQuickRegPrefill: (data: any) => void;
+  resetAllData: () => void;
+  autoPersist: boolean;
+  setAutoPersist: (val: boolean) => void;
 }

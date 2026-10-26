@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   AlertTriangle,
   Users,
+  RotateCcw,
 } from 'lucide-react';
 
 export default function Header() {
@@ -28,6 +29,7 @@ export default function Header() {
     setCurrentTab,
     setIsShiftModalOpen,
     sessions,
+    resetAllData,
   } = useApp();
 
   const overtimeSessions = sessions.filter((s) => s.status === 'overtime');
@@ -95,6 +97,20 @@ export default function Header() {
             <PlusCircle className="w-4 h-4" />
             <span className="hidden sm:inline">{t.newRegistrationBtn}</span>
             <span className="sm:hidden">+ Qabul</span>
+          </button>
+
+          {/* Reset Demo Data Button */}
+          <button
+            onClick={() => {
+              if (window.confirm("Barcha ma'lumotlarni boshlang'ich demo holatiga qaytarishni xohlaysizmi?")) {
+                resetAllData();
+              }
+            }}
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors"
+            title="Barcha ma'lumotlarni boshlang'ich demo holatiga qaytarish (Reset)"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+            <span className="hidden xl:inline">Reset</span>
           </button>
 
           {/* Smena Yopish button */}

@@ -9,10 +9,23 @@ import {
   Bot,
   Smartphone,
   Sliders,
+  RotateCcw,
+  Database,
+  HardDrive,
 } from 'lucide-react';
 
 export default function SettingsView() {
-  const { t, tariffs, setTariffs, actionLogs, addLog, sessions } = useApp();
+  const {
+    t,
+    tariffs,
+    setTariffs,
+    actionLogs,
+    addLog,
+    sessions,
+    resetAllData,
+    autoPersist,
+    setAutoPersist,
+  } = useApp();
 
   const [hour1, setHour1] = useState<number>(tariffs.hour1);
   const [hour1_5, setHour1_5] = useState<number>(tariffs.hour1_5);
@@ -270,6 +283,70 @@ export default function SettingsView() {
               }`}
             >
               🌙 "Kunlik 23:59 hisobot"
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: Data Storage & Persistence Controls */}
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <Database className="w-5 h-5 text-sky-500" />
+            <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+              Ma'lumotlar Saqlanishi va Demo Rejimi (Data Persistence)
+            </h3>
+          </div>
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            LocalStorage Faol
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <HardDrive className="w-4 h-4 text-sky-500" />
+                Avtomatik saqlash (LocalStorage)
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoPersist}
+                  onChange={(e) => setAutoPersist(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-600"></div>
+              </label>
+            </div>
+            <p className="text-slate-500 text-[11px] leading-relaxed">
+              Yoqilgan bo'lsa: yangi kiritilgan seanslar, xarajatlar va narxlar brauzeringizda saqlanadi. O'chirilsa: sahifa yangilanganda (refresh) toza holatga qaytadi.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex flex-col justify-between space-y-2">
+            <div>
+              <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <RotateCcw className="w-4 h-4 text-amber-500" />
+                Dastlabki Demo Holatiga Qaytarish (Reset)
+              </span>
+              <p className="text-slate-500 text-[11px] leading-relaxed mt-1">
+                Barcha taymerlarni joriy vaqtga moslab, demo seanslar (42 daqiqa qolgan, overtime, bronlar)ni yangidan tiklaydi.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm("Barcha ma'lumotlarni boshlang'ich toza demo holatiga qaytarishni xohlaysizmi?")) {
+                  resetAllData();
+                  alert("Ma'lumotlar boshlang'ich holatga muvaffaqiyatli qaytarildi!");
+                }
+              }}
+              className="py-2 px-3 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 self-start"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Boshlang'ich holatga qaytarish (Reset)</span>
             </button>
           </div>
         </div>
