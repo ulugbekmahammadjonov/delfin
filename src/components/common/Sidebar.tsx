@@ -97,7 +97,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 shrink-0 hidden md:flex flex-col justify-between bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 transition-colors">
+    <aside className="w-64 shrink-0 hidden md:flex flex-col justify-between bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 transition-colors h-full overflow-y-auto select-none">
       <div className="space-y-6">
         <nav className="space-y-1">
           {menuItems.map((item) => {
