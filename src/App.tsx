@@ -39,13 +39,15 @@ function MainLayout() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors">
+    <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors overflow-hidden">
       <Header />
 
-      <div className="flex-1 flex max-w-full overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Sidebar on desktop - fixed in place */}
         <Sidebar />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-20 md:pb-8">
+        {/* Content Area - ONLY THIS SCROLLS */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-24 md:pb-8">
           <Routes>
             <Route path="/" element={<DashboardView />} />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
