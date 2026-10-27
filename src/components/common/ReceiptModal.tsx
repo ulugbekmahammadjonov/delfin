@@ -97,6 +97,12 @@ export default function ReceiptModal() {
           </div>
 
           <div className="border-t-2 border-slate-400 dark:border-slate-600 pt-2 space-y-1">
+            {session.isBonus && (
+              <div className="flex justify-between text-[11px] text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/60 px-2 py-1 rounded-md">
+                <span>Aksiya:</span>
+                <span>🎁 9-tashrif Bonusi (100% Bepul)</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm font-extrabold text-slate-900 dark:text-white">
               <span>JAMI TO'LOV:</span>
               <span>{session.totalAmount.toLocaleString()} UZS</span>

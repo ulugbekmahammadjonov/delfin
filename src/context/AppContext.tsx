@@ -290,7 +290,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         totalSpent: clientData.amount || 0,
         lastVisitDate: new Date().toISOString().split('T')[0],
         registeredDate: new Date().toISOString().split('T')[0],
-        bonusBalance: Math.round((clientData.amount || 0) * 0.05),
         status: 'Yangi mijoz',
         isBlacklisted: false,
         blacklistReason: null,
@@ -330,6 +329,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       bookingDate: sessionData.bookingDate || null,
       bookingTime: sessionData.bookingTime || null,
       isExclusive: sessionData.isExclusive || false,
+      isBonus: sessionData.isBonus || false,
     };
 
     setSessions((prev) => [newSession, ...prev]);
@@ -486,6 +486,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addLog(`DIQQAT: Bron bekor qilindi! (${session.clientName}, sauna: ${session.roomName}, sababi: ${reason})`);
   };
 
+  const updateSession = (sessionId: string, updates: Partial<Session>) => {
+    setSessions((prev) =>
+      prev.map((s) => (s.id === sessionId ? { ...s, ...updates } : s))
+    );
+    const session = sessions.find((s) => s.id === sessionId);
+    addLog(`Bron ma'lumotlari yangilandi: ${updates.clientName || session?.clientName} (${updates.roomName || session?.roomName})`);
+    soundManager.playSuccess();
+  };
+
   const addBarOrderToSession = (sessionId: string, orderedItem: BarOrderItem) => {
     setSessions((prev) =>
       prev.map((s) => {
@@ -607,6 +616,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         finishSession,
         startBookingSession,
         cancelBooking,
+        updateSession,
         addBarOrderToSession,
         expenses,
         addExpense,
