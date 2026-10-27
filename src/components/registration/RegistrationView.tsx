@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Client, Session, PaymentStatus, PaymentMethod, SessionType } from '../../types';
+import { formatTime24 } from '../../utils/dateUtils';
 import {
   Timer,
   Phone,
@@ -16,6 +17,9 @@ import {
   Zap,
   PhoneCall,
   ShieldAlert,
+  Clock,
+  Lock,
+  X,
 } from 'lucide-react';
 
 export default function RegistrationView() {
@@ -24,6 +28,7 @@ export default function RegistrationView() {
     tariffs,
     rooms,
     sessions,
+    clients,
     currentTime,
     addSession,
     extendSessionTime,
@@ -38,12 +43,15 @@ export default function RegistrationView() {
   const [phone, setPhone] = useState<string>('+998 ');
   const [clientName, setClientName] = useState<string>('');
   const [matchedClient, setMatchedClient] = useState<Client | null>(null);
+  const [phoneSuggestions, setPhoneSuggestions] = useState<Client[]>([]);
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState<boolean>(false);
   const [guestsCount, setGuestsCount] = useState<number>(4);
   const [isCapacityModalOpen, setIsCapacityModalOpen] = useState<boolean>(false);
   const [visitType, setVisitType] = useState<SessionType>('instant');
   const [bookingDate, setBookingDate] = useState<string>('Bugun');
   const [bookingTime, setBookingTime] = useState<string>('14:30');
   const [selectedRoomId, setSelectedRoomId] = useState<string>('');
+  const [isExclusive, setIsExclusive] = useState<boolean>(false);
   const [durationOption, setDurationOption] = useState<string>('1.5');
   const [customHours, setCustomHours] = useState<string>('3');
   const [customPrice, setCustomPrice] = useState<string>('');
@@ -63,20 +71,98 @@ export default function RegistrationView() {
     }
   }, [rooms, selectedRoomId]);
 
+  // Uzbek Phone Formatter: +998 XX XXX XX XX (max 9 digits after 998)
+  const formatUzbekPhone = (input: string): string => {
+    let digits = input.replace(/\D/g, '');
+    if (digits.startsWith('998')) {
+      digits = digits.slice(3);
+    }
+    digits = digits.slice(0, 9);
+
+    let formatted = '+998 ';
+    if (digits.length > 0) formatted += digits.slice(0, 2);
+    if (digits.length > 2) formatted += ' ' + digits.slice(2, 5);
+    if (digits.length > 5) formatted += ' ' + digits.slice(5, 7);
+    if (digits.length > 7) formatted += ' ' + digits.slice(7, 9);
+    return formatted;
+  };
+
   const handlePhoneChange = (val: string) => {
-    setPhone(val);
-    const clean = val.replace(/\D/g, '');
-    if (clean.length >= 7) {
-      const found = findClientByPhone(val);
-      if (found) {
-        setMatchedClient(found);
-        setClientName(found.name);
+    let digits = val.replace(/\D/g, '');
+    if (digits.startsWith('998')) {
+      digits = digits.slice(3);
+    }
+    // Strictly max 9 national digits (cannot type extra)
+    digits = digits.slice(0, 9);
+
+    let formatted = '+998 ';
+    if (digits.length > 0) formatted += digits.slice(0, 2);
+    if (digits.length > 2) formatted += ' ' + digits.slice(2, 5);
+    if (digits.length > 5) formatted += ' ' + digits.slice(5, 7);
+    if (digits.length > 7) formatted += ' ' + digits.slice(7, 9);
+
+    setPhone(formatted);
+
+    // Instant real-time search from first digit entered
+    if (digits.length >= 1) {
+      const searchStr = digits;
+      const matches = clients.filter((c) => {
+        const cDigits = c.phone.replace(/\D/g, '');
+        const localDigits = cDigits.startsWith('998') ? cDigits.slice(3) : cDigits;
+        return localDigits.includes(searchStr) || cDigits.includes(searchStr);
+      });
+
+      setPhoneSuggestions(matches);
+      setIsSuggestionsOpen(matches.length > 0);
+
+      // Check if full 9 digits match an exact client
+      if (digits.length === 9) {
+        const exact = matches.find((c) => {
+          const cDigits = c.phone.replace(/\D/g, '');
+          const localDigits = cDigits.startsWith('998') ? cDigits.slice(3) : cDigits;
+          return localDigits === digits;
+        });
+
+        if (exact) {
+          setMatchedClient(exact);
+          setClientName(exact.name);
+          setIsSuggestionsOpen(false);
+        } else {
+          setMatchedClient(null);
+        }
+      } else if (matches.length === 1 && digits.length >= 7) {
+        setMatchedClient(matches[0]);
+        setClientName(matches[0].name);
       } else {
         setMatchedClient(null);
       }
     } else {
+      setPhoneSuggestions([]);
+      setIsSuggestionsOpen(false);
       setMatchedClient(null);
     }
+  };
+
+  const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Prevent backspace deleting '+998 '
+    const target = e.currentTarget;
+    const selStart = target.selectionStart;
+    const selEnd = target.selectionEnd;
+
+    if (e.key === 'Backspace') {
+      if (selStart !== null && selStart <= 5 && selEnd !== null && selEnd <= 5) {
+        e.preventDefault();
+      }
+    }
+  };
+
+  const selectMatchedClient = (client: Client) => {
+    const formatted = formatUzbekPhone(client.phone);
+    setPhone(formatted);
+    setMatchedClient(client);
+    setClientName(client.name);
+    setPhoneSuggestions([]);
+    setIsSuggestionsOpen(false);
   };
 
   const effectiveHours =
@@ -97,30 +183,37 @@ export default function RegistrationView() {
       ? tariffs.vip
       : Math.round(tariffs.hour1 * effectiveHours);
 
-  const extraGuests = Math.max(0, guestsCount - tariffs.includedGuestsStandard);
-  const extraGuestPrice = extraGuests * tariffs.extraPersonPerHour * Math.ceil(effectiveHours);
-
-  const calculatedTotal = Math.max(0, baseTariffPrice + extraGuestPrice - Number(discountAmount || 0));
-  const finalPrice = customPrice !== '' ? Number(customPrice) : calculatedTotal;
-
   const selectedRoom = rooms.find((r) => r.id === selectedRoomId);
 
   const activeInSelectedRoom = sessions.filter(
     (s) => s.roomId === selectedRoomId && (s.status === 'active' || s.status === 'overtime')
   );
-  const currentOcc = activeInSelectedRoom.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
-  const remainingSpotsInRoom = selectedRoom ? selectedRoom.capacity - currentOcc : 0;
+  const roomHasActiveExclusive = activeInSelectedRoom.some((s) => s.isExclusive);
+  const currentOcc = roomHasActiveExclusive
+    ? (selectedRoom?.capacity || 7)
+    : activeInSelectedRoom.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
+  const remainingSpotsInRoom = selectedRoom ? Math.max(0, selectedRoom.capacity - currentOcc) : 0;
   const totalGuestsAfterAdd = currentOcc + guestsCount;
-  const isExceedingCapacity = Boolean(selectedRoom && totalGuestsAfterAdd > selectedRoom.capacity);
+  const isExceedingCapacity = Boolean(selectedRoom && (roomHasActiveExclusive || totalGuestsAfterAdd > selectedRoom.capacity));
   const excessCount = selectedRoom ? Math.max(0, totalGuestsAfterAdd - selectedRoom.capacity) : 0;
+
+  // Billing guests calculation: if booking and isExclusive, client pays for full room capacity!
+  const isExclusiveActive = visitType === 'booking' && isExclusive;
+  const billingGuests = isExclusiveActive && selectedRoom ? Math.max(guestsCount, selectedRoom.capacity) : guestsCount;
+  const extraGuests = Math.max(0, billingGuests - tariffs.includedGuestsStandard);
+  const extraGuestPrice = extraGuests * tariffs.extraPersonPerHour * Math.ceil(effectiveHours);
+
+  const calculatedTotal = Math.max(0, baseTariffPrice + extraGuestPrice - Number(discountAmount || 0));
+  const finalPrice = customPrice !== '' ? Number(customPrice) : calculatedTotal;
 
   const executeAddSession = () => {
     addSession({
       clientName: clientName.trim(),
       phone: phone.trim(),
       guestsCount: Number(guestsCount),
+      isExclusive: isExclusiveActive,
       roomId: selectedRoomId,
-      roomName: selectedRoom ? selectedRoom.name : 'Xona',
+      roomName: selectedRoom ? selectedRoom.name : 'Sauna',
       type: visitType,
       durationHours: effectiveHours,
       baseAmount: baseTariffPrice,
@@ -129,7 +222,7 @@ export default function RegistrationView() {
       paymentStatus: paymentStatus,
       depositAmount: paymentStatus === 'deposit' ? Number(depositAmount) : 0,
       paymentMethod: paymentMethod,
-      notes: notes.trim(),
+      notes: (isExclusiveActive ? "[TO'LIQ BAND (EKSKLYUZIV)] " : '') + notes.trim(),
       bookingDate: visitType === 'booking' ? bookingDate : null,
       bookingTime: visitType === 'booking' ? bookingTime : null,
     });
@@ -137,10 +230,13 @@ export default function RegistrationView() {
     setPhone('+998 ');
     setClientName('');
     setMatchedClient(null);
+    setPhoneSuggestions([]);
+    setIsSuggestionsOpen(false);
     setNotes('');
     setCustomPrice('');
     setDiscountAmount(0);
     setIsCapacityModalOpen(false);
+    setIsExclusive(false);
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
@@ -148,6 +244,16 @@ export default function RegistrationView() {
 
     if (!clientName.trim()) {
       alert("Iltimos, mijoz ismini kiriting!");
+      return;
+    }
+
+    if (roomHasActiveExclusive) {
+      alert("Diqqat: Ushbu sauna hozirda boshqa mijoz tomonidan to'liq (eksklyuziv) band qilingan! Boshqa mijoz qabul qilinmaydi.");
+      return;
+    }
+
+    if (isExclusiveActive && activeInSelectedRoom.length > 0) {
+      alert(`Diqqat: Ushbu saunada hozir boshqa mijozlar bor (${activeInSelectedRoom.reduce((acc, s) => acc + (s.guestsCount || 0), 0)} kishi). Saunani to'liq (eksklyuziv) band qilish uchun sauna mutlaqo bo'sh bo'lishi kerak!`);
       return;
     }
 
@@ -166,7 +272,7 @@ export default function RegistrationView() {
 
     if (session.status === 'booking') {
       return {
-        label: `${session.bookingDate} ${session.bookingTime}`,
+        label: `${session.bookingDate} ${formatTime24(session.bookingTime)}`,
         statusClass: 'text-sky-500 font-bold',
         isBooking: true,
         isOvertime: false,
@@ -207,6 +313,20 @@ export default function RegistrationView() {
     }
   };
 
+  const isSessionToday = (s: Session) => {
+    const todayDate = new Date().toISOString().split('T')[0];
+    if (s.completedAt) {
+      return s.completedAt.startsWith(todayDate);
+    }
+    if (s.endTime) {
+      return s.endTime.startsWith(todayDate);
+    }
+    if (s.startTime) {
+      return s.startTime.startsWith(todayDate);
+    }
+    return s.bookingDate === 'Bugun';
+  };
+
   const filteredSessions = sessions.filter((s) => {
     const matchSearch =
       s.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -219,7 +339,7 @@ export default function RegistrationView() {
     if (activeTab === 'active') return s.status === 'active';
     if (activeTab === 'overtime') return s.status === 'overtime';
     if (activeTab === 'booking') return s.status === 'booking';
-    if (activeTab === 'completed') return s.status === 'completed';
+    if (activeTab === 'completed') return s.status === 'completed' && isSessionToday(s);
     return true;
   });
 
@@ -232,7 +352,251 @@ export default function RegistrationView() {
   const countActive = sessions.filter((s) => s.status === 'active').length;
   const countOvertime = sessions.filter((s) => s.status === 'overtime').length;
   const countBooking = sessions.filter((s) => s.status === 'booking').length;
-  const countCompleted = sessions.filter((s) => s.status === 'completed').length;
+  const countCompleted = sessions.filter((s) => s.status === 'completed' && isSessionToday(s)).length;
+
+  const isSmallRoom = (s: Session) =>
+    s.roomId === 'r1' || s.roomName?.toLowerCase().includes('kichik') || !s.roomId;
+  const isBigRoom = (s: Session) =>
+    s.roomId === 'r2' || s.roomName?.toLowerCase().includes('katta');
+
+  const smallRoomSessions = sortedSessions.filter(isSmallRoom);
+  const bigRoomSessions = sortedSessions.filter(isBigRoom);
+
+  const activeSmallSessions = sessions.filter(
+    (s) => isSmallRoom(s) && (s.status === 'active' || s.status === 'overtime')
+  );
+  const hasSmallExclusive = activeSmallSessions.some((s) => s.isExclusive);
+  const smallOcc = hasSmallExclusive
+    ? 7
+    : activeSmallSessions.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
+  const smallRem = Math.max(0, 7 - smallOcc);
+
+  const activeBigSessions = sessions.filter(
+    (s) => isBigRoom(s) && (s.status === 'active' || s.status === 'overtime')
+  );
+  const hasBigExclusive = activeBigSessions.some((s) => s.isExclusive);
+  const bigOcc = hasBigExclusive
+    ? 30
+    : activeBigSessions.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
+  const bigRem = Math.max(0, 30 - bigOcc);
+
+  const renderSessionCard = (session: Session) => {
+    const timer = getTimerDetails(session);
+
+    const isOvertime = session.status === 'overtime';
+    const isActive = session.status === 'active';
+    const isBooking = session.status === 'booking';
+    const isCompleted = session.status === 'completed';
+    const isSmall = isSmallRoom(session);
+
+    let cardStyle =
+      'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800';
+
+    if (isOvertime) {
+      cardStyle =
+        'bg-rose-50/60 dark:bg-rose-950/30 border-2 border-rose-500 animate-overtime-glow';
+    } else if (isActive && timer.isWarning) {
+      cardStyle =
+        'bg-amber-50/60 dark:bg-amber-950/30 border-2 border-amber-400 dark:border-amber-500 shadow-md';
+    } else if (isActive) {
+      cardStyle = isSmall
+        ? 'bg-white dark:bg-slate-900 border-2 border-sky-400/80 dark:border-sky-600/80 shadow-sm'
+        : 'bg-white dark:bg-slate-900 border-2 border-indigo-400/80 dark:border-indigo-600/80 shadow-sm';
+    } else if (isBooking) {
+      cardStyle =
+        'bg-sky-50/40 dark:bg-sky-950/20 border border-sky-300 dark:border-sky-800';
+    } else if (isCompleted) {
+      cardStyle =
+        'bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 opacity-75';
+    }
+
+    return (
+      <div
+        key={session.id}
+        className={`rounded-2xl p-3.5 transition-all duration-200 space-y-3 ${cardStyle}`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="space-y-1 flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                {session.clientName}
+              </span>
+              <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                {session.phone}
+              </span>
+              {session.isExclusive && (
+                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-amber-500 text-white flex items-center gap-1 shadow-xs">
+                  <Lock className="w-2.5 h-2.5" />
+                  <span>Eksklyuziv</span>
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 flex-wrap">
+              <span className="flex items-center gap-1">
+                <Users className="w-3.5 h-3.5 text-slate-400" />
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{session.guestsCount} kishi</span>
+                {session.isExclusive && (
+                  <span className="text-amber-600 dark:text-amber-400 font-bold ml-0.5">
+                    (Yopiq sauna)
+                  </span>
+                )}
+              </span>
+              <span>•</span>
+              <span>{session.durationHours} soat</span>
+              <span>•</span>
+              <span className="font-medium text-slate-600 dark:text-slate-300">
+                {session.paymentStatus === 'full'
+                  ? "To'langan"
+                  : session.paymentStatus === 'deposit'
+                  ? `Zalog: ${session.depositAmount?.toLocaleString()} UZS`
+                  : "Chiqishda"}
+              </span>
+            </div>
+          </div>
+
+          <div className="text-right flex-shrink-0">
+            <div className="flex items-center justify-end gap-1.5">
+              {isOvertime && (
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+              )}
+              <span className={`text-xs md:text-sm font-mono ${timer.statusClass}`}>
+                {timer.label}
+              </span>
+            </div>
+
+            {session.startTime && (
+              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                {formatTime24(session.startTime)} -{' '}
+                {session.endTime ? formatTime24(session.endTime) : ''}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {isBooking && (
+          <div className="p-2 rounded-xl bg-sky-100 dark:bg-sky-950/80 border border-sky-300 dark:border-sky-800 flex items-center justify-between text-xs text-sky-900 dark:text-sky-200">
+            <div className="flex items-center gap-1.5 font-semibold text-[11px] truncate">
+              <BellRing className="w-3.5 h-3.5 text-sky-600 animate-bounce-subtle flex-shrink-0" />
+              <span className="truncate">{session.bookingDate} {formatTime24(session.bookingTime)}</span>
+            </div>
+            <a
+              href={`tel:${session.phone}`}
+              className="px-2 py-0.5 rounded-lg bg-sky-600 text-white text-[10px] font-bold flex items-center gap-1 flex-shrink-0"
+            >
+              <PhoneCall className="w-3 h-3" />
+              <span>Qo'ng'iroq</span>
+            </a>
+          </div>
+        )}
+
+        {session.barOrders && session.barOrders.length > 0 && (
+          <div className="p-2 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 text-[11px] truncate">
+              <ShoppingBag className="w-3 h-3 text-sky-500 flex-shrink-0" />
+              <span className="font-semibold">Mini-bar ({session.barOrders.length}):</span>
+              <span className="text-slate-500 truncate">
+                {session.barOrders.map((o) => `${o.name} (${o.quantity}x)`).join(', ')}
+              </span>
+            </div>
+            <span className="font-mono font-bold text-sky-600 dark:text-sky-400 text-[11px] flex-shrink-0 ml-1">
+              +{session.barTotal.toLocaleString()} UZS
+            </span>
+          </div>
+        )}
+
+        {session.notes && (
+          <div className="text-[10px] text-slate-500 italic truncate">
+            💬 "{session.notes}"
+          </div>
+        )}
+
+        <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-semibold text-slate-400">Jami:</span>
+            <span className="font-mono font-extrabold text-xs text-slate-900 dark:text-white">
+              {session.totalAmount.toLocaleString()} UZS
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1 text-xs">
+            {isOvertime && (
+              <>
+                <button
+                  onClick={() => extendSessionTime(session.id, 30)}
+                  className="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors"
+                >
+                  +30 daq
+                </button>
+                <button
+                  onClick={() => extendSessionTime(session.id, 60)}
+                  className="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors"
+                >
+                  +1 soat
+                </button>
+                <button
+                  onClick={() => finishSession(session.id)}
+                  className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-rose-600 hover:bg-rose-700 text-white transition-colors shadow-xs"
+                >
+                  {t.finishSession}
+                </button>
+              </>
+            )}
+
+            {isActive && (
+              <>
+                <button
+                  onClick={() => setActiveBarOrderSession(session)}
+                  className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 transition-colors flex items-center gap-1"
+                >
+                  <ShoppingBag className="w-3 h-3" />
+                  <span>+ Bar</span>
+                </button>
+                <button
+                  onClick={() => extendSessionTime(session.id, 30)}
+                  className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+                >
+                  +30 daq
+                </button>
+                <button
+                  onClick={() => finishSession(session.id)}
+                  className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors shadow-xs"
+                >
+                  {t.finishSession}
+                </button>
+              </>
+            )}
+
+            {isBooking && (
+              <>
+                <button
+                  onClick={() => cancelBooking(session.id)}
+                  className="px-2 py-1 rounded-lg text-[10px] font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
+                >
+                  {t.cancelBooking}
+                </button>
+                <button
+                  onClick={() => startBookingSession(session.id)}
+                  className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-sky-600 hover:bg-sky-500 text-white transition-colors shadow-xs flex items-center gap-1"
+                >
+                  <Zap className="w-3 h-3" />
+                  <span>{t.startBookingSession}</span>
+                </button>
+              </>
+            )}
+
+            <button
+              onClick={() => setActiveReceiptSession(session)}
+              className="p-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+              title={t.printReceipt}
+            >
+              <Printer className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -242,14 +606,11 @@ export default function RegistrationView() {
             <Timer className="w-6 h-6 text-sky-500" />
             {t.regTitle}
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {t.regSubtitle} — jonli taymerlar, ogohlantirishlar va qabul boshqaruvi
-          </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 space-y-4">
+        <div className="lg:col-span-4 xl:col-span-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <span className="w-7 h-7 rounded-lg bg-sky-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">
@@ -259,33 +620,109 @@ export default function RegistrationView() {
                 Tezkor Qabul Formasi
               </h2>
             </div>
-            <span className="text-[11px] font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/80 px-2 py-0.5 rounded-full border border-sky-200 dark:border-sky-800">
-              ~ 15 soniya
-            </span>
           </div>
 
           <form onSubmit={handleRegisterSubmit} className="space-y-3.5 text-xs">
-            <div>
+            <div className="relative">
               <div className="flex justify-between items-center mb-1">
                 <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-sky-500" />
                   {t.searchClientPhone}
                 </label>
                 {matchedClient && (
-                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.5 rounded">
-                    ✓ {t.clientFound}
+                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                    <span>✓</span>
+                    <span>{t.clientFound}</span>
                   </span>
                 )}
               </div>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => handlePhoneChange(e.target.value)}
-                placeholder="+998 90 123 45 67"
-                required
-                className="w-full px-3 py-2.5 rounded-xl font-mono text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-              />
 
+              <div className="relative">
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  onKeyDown={handlePhoneKeyDown}
+                  onFocus={() => {
+                    if (phoneSuggestions.length > 0) setIsSuggestionsOpen(true);
+                  }}
+                  placeholder="+998 90 123 45 67"
+                  maxLength={17}
+                  required
+                  className="w-full px-3 py-2.5 rounded-xl font-mono text-sm font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 tracking-wide"
+                />
+
+                {phoneSuggestions.length > 0 && isSuggestionsOpen && (
+                  <span className="absolute right-3 top-2.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                    {phoneSuggestions.length} ta topildi
+                  </span>
+                )}
+              </div>
+
+              {/* Real-time Suggestions Dropdown */}
+              {isSuggestionsOpen && phoneSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80 animate-in fade-in duration-150">
+                  <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-800/60 flex justify-between items-center sticky top-0 backdrop-blur">
+                    <span>Mijozlar bazasidan moslar ({phoneSuggestions.length}):</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsSuggestionsOpen(false)}
+                      className="text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {phoneSuggestions.map((client) => {
+                    const isBlack = client.isBlacklisted;
+                    const hasDebt = (client.debtAmount || 0) > 0;
+
+                    return (
+                      <button
+                        key={client.id}
+                        type="button"
+                        onClick={() => selectMatchedClient(client)}
+                        className="w-full px-3 py-2.5 text-left hover:bg-sky-50 dark:hover:bg-slate-800/80 transition-colors flex items-center justify-between gap-2 group"
+                      >
+                        <div className="truncate">
+                          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
+                            <span className="group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                              {client.name}
+                            </span>
+                            {client.visitsCount >= 5 && !isBlack && <span>👑</span>}
+                          </div>
+                          <div className="font-mono text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
+                            <span className="font-bold text-slate-700 dark:text-slate-300">{client.phone}</span>
+                            <span>•</span>
+                            <span>{client.visitsCount} marta kelgan</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              isBlack
+                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-300'
+                                : hasDebt
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300'
+                                : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200'
+                            }`}
+                          >
+                            {client.status}
+                          </span>
+                          {hasDebt && (
+                            <span className="text-[10px] text-rose-600 font-mono font-bold">
+                              Qarz: {client.debtAmount?.toLocaleString()} UZS
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Matched Client Card */}
               {matchedClient && (
                 <div className="mt-2 animate-in fade-in duration-200">
                   {matchedClient.isBlacklisted ? (
@@ -307,8 +744,16 @@ export default function RegistrationView() {
                             {matchedClient.status}
                           </span>
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          {matchedClient.visitsCount}-tashrif • Bonus: {matchedClient.bonusBalance?.toLocaleString()} so'm
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
+                          <span>{matchedClient.visitsCount}-tashrif</span>
+                          <span>•</span>
+                          <span>Bonus: {matchedClient.bonusBalance?.toLocaleString()} so'm</span>
+                          {(matchedClient.debtAmount || 0) > 0 && (
+                            <>
+                              <span>•</span>
+                              <span className="text-rose-600 font-bold">Qarz: {matchedClient.debtAmount?.toLocaleString()} so'm</span>
+                            </>
+                          )}
                         </div>
                       </div>
                       <span className="text-xl">🌟</span>
@@ -340,9 +785,6 @@ export default function RegistrationView() {
                   <Users className="w-3.5 h-3.5 text-sky-500" />
                   {t.guestsCountLabel}:
                 </label>
-                <span className="text-[11px] text-slate-400">
-                  (Standart tarifda 4 kishi kiritilgan)
-                </span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -384,7 +826,10 @@ export default function RegistrationView() {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => setVisitType('instant')}
+                  onClick={() => {
+                    setVisitType('instant');
+                    setIsExclusive(false);
+                  }}
                   className={`py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 border transition-all ${
                     visitType === 'instant'
                       ? 'bg-emerald-500 text-white border-emerald-600 shadow-md shadow-emerald-500/20'
@@ -421,11 +866,13 @@ export default function RegistrationView() {
                     />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 block mb-0.5">{t.bookingTime}</span>
+                    <span className="text-[10px] text-slate-400 block mb-0.5">{t.bookingTime} (24-soatlik)</span>
                     <input
-                      type="time"
+                      type="text"
                       value={bookingTime}
                       onChange={(e) => setBookingTime(e.target.value)}
+                      placeholder="14:30"
+                      maxLength={5}
                       className="w-full text-xs p-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 font-mono font-bold"
                     />
                   </div>
@@ -438,9 +885,6 @@ export default function RegistrationView() {
                 <label className="font-bold text-slate-700 dark:text-slate-300">
                   {t.roomLabel}
                 </label>
-                <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/80 px-2 py-0.5 rounded-full border border-sky-200 dark:border-sky-800 flex items-center gap-1">
-                  <span>🚹</span> Faqat erkaklar bo'limi
-                </span>
               </div>
               <select
                 value={selectedRoomId}
@@ -451,11 +895,14 @@ export default function RegistrationView() {
                   const active = sessions.filter(
                     (s) => s.roomId === room.id && (s.status === 'active' || s.status === 'overtime')
                   );
-                  const occ = active.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
+                  const hasExclusive = active.some((s) => s.isExclusive);
+                  const occ = hasExclusive ? room.capacity : active.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
                   const rem = room.capacity - occ;
 
                   const statusStr =
-                    occ === 0
+                    hasExclusive
+                      ? `🔒 To'liq band (Eksklyuziv bron)`
+                      : occ === 0
                       ? `🟢 Bo'sh (${room.capacity} ta joy)`
                       : rem > 0
                       ? `🟡 Joy bor (${occ}/${room.capacity} kishi • Yana ${rem} ta joy)`
@@ -471,7 +918,12 @@ export default function RegistrationView() {
               {selectedRoom && (
                 <div className="mt-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs flex items-center justify-between">
                   <span className="text-slate-500 dark:text-slate-400">Joriy bandlik holati:</span>
-                  {currentOcc === 0 ? (
+                  {roomHasActiveExclusive ? (
+                    <span className="font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded-lg border border-rose-300 dark:border-rose-700">
+                      <Lock className="w-3 h-3 text-rose-600" />
+                      Eksklyuziv band (Boshqa mijoz kiritilmaydi)
+                    </span>
+                  ) : currentOcc === 0 ? (
                     <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                       Bo'sh ({selectedRoom.capacity} ta bo'sh joy)
@@ -489,11 +941,62 @@ export default function RegistrationView() {
                   )}
                 </div>
               )}
-              <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-                <span className="text-amber-500 font-bold">ℹ️</span>
-                <span>Barcha xonalar faqat erkaklar uchun (oilaviy er-xotin qabul qilinmaydi).</span>
-              </div>
             </div>
+
+            {/* Saunani to'liq band qilish (Eksklyuziv yopish) opsiyasi faqat Bron qilishda chiqadi */}
+            {visitType === 'booking' && (
+              <div
+                className={`p-3 rounded-xl border transition-all ${
+                  isExclusive
+                    ? 'bg-amber-500/10 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600 ring-1 ring-amber-400/30'
+                    : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isExclusive}
+                    onChange={(e) => setIsExclusive(e.target.checked)}
+                    disabled={Boolean(roomHasActiveExclusive)}
+                    className="w-4 h-4 mt-0.5 text-amber-600 rounded focus:ring-amber-500 border-slate-300 dark:border-slate-600 cursor-pointer"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Saunani to'liq band qilish (Eksklyuziv bron)</span>
+                      </span>
+                      {isExclusive && (
+                        <span className="text-[10px] bg-amber-500 text-white font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                          Yopiq sauna
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                      Boshqa hech qanday mijoz qabul qilinmaydi. Mehmonlar soni {guestsCount} kishi bo'lsa ham, to'lov butun sauna sig'imi ({selectedRoom?.capacity || 7} kishi) bo'yicha hisoblanadi.
+                    </p>
+                    {isExclusive && selectedRoom && (
+                      <div className="mt-2 text-[11px] font-bold text-amber-800 dark:text-amber-200 bg-amber-100/80 dark:bg-amber-900/40 p-2 rounded-lg flex items-center justify-between border border-amber-300/60 dark:border-amber-700/60">
+                        <span>Keladigan mehmonlar: {guestsCount} kishi</span>
+                        <span className="text-amber-700 dark:text-amber-300">Hisob: {selectedRoom.capacity} kishilik to'liq narx</span>
+                      </div>
+                    )}
+                  </div>
+                </label>
+              </div>
+            )}
+
+            {roomHasActiveExclusive && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs space-y-1">
+                <div className="flex items-center gap-1.5 font-bold">
+                  <Lock className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  <span>Sauna to'liq (eksklyuziv) band qilingan!</span>
+                </div>
+                <p className="text-[11px] text-rose-700 dark:text-rose-300 leading-snug">
+                  Ushbu sauna boshqa mijoz tomonidan to'liq yopilgan. Seans tugaguncha unga yangi mijoz qabul qilib bo'lmaydi.
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
@@ -532,7 +1035,17 @@ export default function RegistrationView() {
                 </span>
               </div>
 
-              {extraGuests > 0 && (
+              {visitType === 'booking' && isExclusive && selectedRoom && (
+                <div className="flex justify-between items-center text-xs text-amber-700 dark:text-amber-300 font-bold bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-300/60 dark:border-amber-700/60">
+                  <span className="flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-amber-500" />
+                    <span>To'liq sauna hisobi ({selectedRoom.capacity} kishilik):</span>
+                  </span>
+                  <span className="font-mono">{(baseTariffPrice + extraGuestPrice).toLocaleString()} UZS</span>
+                </div>
+              )}
+
+              {extraGuests > 0 && !(visitType === 'booking' && isExclusive) && (
                 <div className="flex justify-between items-center text-[11px] text-slate-500">
                   <span>+{extraGuests} qo'shimcha kishi ustamasi:</span>
                   <span className="font-mono">+{extraGuestPrice.toLocaleString()} UZS</span>
@@ -625,13 +1138,21 @@ export default function RegistrationView() {
 
             <button
               type="submit"
+              disabled={Boolean(roomHasActiveExclusive)}
               className={`w-full py-3 rounded-xl font-black text-sm text-white shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${
-                visitType === 'instant'
+                roomHasActiveExclusive
+                  ? 'bg-slate-400 dark:bg-slate-700 cursor-not-allowed opacity-60 shadow-none'
+                  : visitType === 'instant'
                   ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 shadow-emerald-500/25'
                   : 'bg-gradient-to-r from-cyan-600 via-sky-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 shadow-sky-500/25'
               }`}
             >
-              {visitType === 'instant' ? (
+              {roomHasActiveExclusive ? (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Sauna to'liq band (Eksklyuziv yopilgan)</span>
+                </>
+              ) : visitType === 'instant' ? (
                 <>
                   <Zap className="w-4 h-4 fill-current" />
                   <span>{t.submitInstant}</span>
@@ -639,14 +1160,14 @@ export default function RegistrationView() {
               ) : (
                 <>
                   <Calendar className="w-4 h-4" />
-                  <span>{t.submitBooking}</span>
+                  <span>{isExclusive ? "Eksklyuziv bronni saqlash (Sauna yopiladi)" : t.submitBooking}</span>
                 </>
               )}
             </button>
           </form>
         </div>
 
-        <div className="lg:col-span-7 space-y-4">
+        <div className="lg:col-span-8 xl:col-span-8 space-y-4">
           <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -655,7 +1176,7 @@ export default function RegistrationView() {
                   {t.liveSessionsTitle}
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Rangli statuslar, jonli teskari taymerlar va tezkor boshqaruv
+                  Kichik sauna va Katta sauna parallel ustunlari, rangli statuslar va jonli taymerlar
                 </p>
               </div>
 
@@ -732,220 +1253,131 @@ export default function RegistrationView() {
             </div>
           </div>
 
-          <div className="space-y-3">
-            {sortedSessions.length === 0 ? (
-              <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 text-xs">
-                Bu filtr bo'yicha hech qanday seans topilmadi.
+          <div className="space-y-4">
+            {activeTab === 'completed' && (
+              <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                <span className="flex items-center gap-2 font-medium">
+                  <Clock className="w-3.5 h-3.5 text-slate-500" />
+                  Bugungi yakunlangan seanslar ro'yxati (Har kuni yangilanadi)
+                </span>
+                <span className="font-bold text-slate-800 dark:text-slate-100">{countCompleted} ta seans</span>
               </div>
-            ) : (
-              sortedSessions.map((session) => {
-                const timer = getTimerDetails(session);
+            )}
 
-                const isOvertime = session.status === 'overtime';
-                const isActive = session.status === 'active';
-                const isBooking = session.status === 'booking';
-                const isCompleted = session.status === 'completed';
-
-                let cardStyle =
-                  'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800';
-
-                if (isOvertime) {
-                  cardStyle =
-                    'bg-rose-50/60 dark:bg-rose-950/30 border-2 border-rose-500 animate-overtime-glow';
-                } else if (isActive && timer.isWarning) {
-                  cardStyle =
-                    'bg-amber-50/60 dark:bg-amber-950/30 border-2 border-amber-400 dark:border-amber-500 shadow-md';
-                } else if (isActive) {
-                  cardStyle =
-                    'bg-white dark:bg-slate-900 border-2 border-emerald-400/80 dark:border-emerald-600/80 shadow-sm';
-                } else if (isBooking) {
-                  cardStyle =
-                    'bg-sky-50/40 dark:bg-sky-950/20 border border-sky-300 dark:border-sky-800';
-                } else if (isCompleted) {
-                  cardStyle =
-                    'bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 opacity-75';
-                }
-
-                return (
-                  <div
-                    key={session.id}
-                    className={`rounded-2xl p-4 transition-all duration-200 space-y-3 ${cardStyle}`}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-0.5 rounded-lg text-xs font-black bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs">
-                            {session.roomName}
-                          </span>
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                            {session.clientName}
-                          </span>
-                          <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                            {session.phone}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
-                          <span className="flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5" />
-                            <span>{session.guestsCount} kishi</span>
-                          </span>
-                          <span>•</span>
-                          <span>{session.durationHours} soat</span>
-                          <span>•</span>
-                          <span className="font-semibold text-slate-700 dark:text-slate-300">
-                            {session.paymentStatus === 'full'
-                              ? "To'liq to'langan"
-                              : session.paymentStatus === 'deposit'
-                              ? `Zalog: ${session.depositAmount?.toLocaleString()} UZS`
-                              : "Chiqishda to'lanadi"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {isOvertime && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
-                          )}
-                          <span className={`text-sm md:text-base font-mono ${timer.statusClass}`}>
-                            {timer.label}
-                          </span>
-                        </div>
-
-                        {session.startTime && (
-                          <div className="text-[10px] text-slate-400">
-                            {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -{' '}
-                            {session.endTime ? new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                          </div>
-                        )}
-                      </div>
+            {/* 2 Ta Ustunli Saunalar Ko'rinishi (Kichik sauna va Katta sauna) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              {/* 1-Ustun: Kichik sauna (7 kishilik) */}
+              <div className="space-y-3">
+                <div className="p-3 rounded-2xl bg-sky-50/80 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/80 flex items-center justify-between shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center text-sm shadow-xs flex-shrink-0">
+                      🧖‍♂️
                     </div>
-
-                    {isBooking && (
-                      <div className="p-2 rounded-xl bg-sky-100 dark:bg-sky-950/80 border border-sky-300 dark:border-sky-800 flex items-center justify-between text-xs text-sky-900 dark:text-sky-200">
-                        <div className="flex items-center gap-1.5 font-semibold">
-                          <BellRing className="w-4 h-4 text-sky-600 animate-bounce-subtle" />
-                          <span>{t.callClientReminder} ({session.phone})</span>
-                        </div>
-                        <a
-                          href={`tel:${session.phone}`}
-                          className="px-2 py-0.5 rounded-lg bg-sky-600 text-white text-[11px] font-bold flex items-center gap-1"
-                        >
-                          <PhoneCall className="w-3 h-3" />
-                          <span>Qo'ng'iroq</span>
-                        </a>
-                      </div>
-                    )}
-
-                    {session.barOrders && session.barOrders.length > 0 && (
-                      <div className="p-2 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 text-xs flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                          <ShoppingBag className="w-3.5 h-3.5 text-sky-500" />
-                          <span className="font-semibold">Mini-bar ({session.barOrders.length} xil):</span>
-                          <span className="text-slate-500">
-                            {session.barOrders.map((o) => `${o.name} (${o.quantity}x)`).join(', ')}
-                          </span>
-                        </div>
-                        <span className="font-mono font-bold text-sky-600 dark:text-sky-400">
-                          +{session.barTotal.toLocaleString()} UZS
-                        </span>
-                      </div>
-                    )}
-
-                    {session.notes && (
-                      <div className="text-[11px] text-slate-500 italic">
-                        💬 "{session.notes}"
-                      </div>
-                    )}
-
-                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-slate-500">Jami hisob:</span>
-                        <span className="font-mono font-extrabold text-sm text-slate-900 dark:text-white">
-                          {session.totalAmount.toLocaleString()} UZS
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 text-xs">
-                        {isOvertime && (
-                          <>
-                            <button
-                              onClick={() => extendSessionTime(session.id, 30)}
-                              className="px-2.5 py-1 rounded-lg font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors"
-                            >
-                              {t.extend30m}
-                            </button>
-                            <button
-                              onClick={() => extendSessionTime(session.id, 60)}
-                              className="px-2.5 py-1 rounded-lg font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors"
-                            >
-                              {t.extend1h}
-                            </button>
-                            <button
-                              onClick={() => finishSession(session.id)}
-                              className="px-3 py-1 rounded-lg font-black bg-rose-600 hover:bg-rose-700 text-white transition-colors shadow-sm"
-                            >
-                              {t.finishSession}
-                            </button>
-                          </>
-                        )}
-
-                        {isActive && (
-                          <>
-                            <button
-                              onClick={() => setActiveBarOrderSession(session)}
-                              className="px-2.5 py-1 rounded-lg font-semibold bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 transition-colors flex items-center gap-1"
-                            >
-                              <ShoppingBag className="w-3.5 h-3.5" />
-                              <span>{t.addOrder}</span>
-                            </button>
-                            <button
-                              onClick={() => extendSessionTime(session.id, 30)}
-                              className="px-2.5 py-1 rounded-lg font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
-                            >
-                              +30 daq
-                            </button>
-                            <button
-                              onClick={() => finishSession(session.id)}
-                              className="px-3 py-1 rounded-lg font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors shadow-sm"
-                            >
-                              {t.finishSession}
-                            </button>
-                          </>
-                        )}
-
-                        {isBooking && (
-                          <>
-                            <button
-                              onClick={() => cancelBooking(session.id)}
-                              className="px-2.5 py-1 rounded-lg font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
-                            >
-                              {t.cancelBooking}
-                            </button>
-                            <button
-                              onClick={() => startBookingSession(session.id)}
-                              className="px-3 py-1 rounded-lg font-bold bg-sky-600 hover:bg-sky-500 text-white transition-colors shadow-sm flex items-center gap-1"
-                            >
-                              <Zap className="w-3.5 h-3.5" />
-                              <span>{t.startBookingSession}</span>
-                            </button>
-                          </>
-                        )}
-
-                        <button
-                          onClick={() => setActiveReceiptSession(session)}
-                          className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
-                          title={t.printReceipt}
-                        >
-                          <Printer className="w-4 h-4" />
-                        </button>
-                      </div>
+                    <div className="min-w-0">
+                      <h3 className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
+                        <span>Kichik sauna</span>
+                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 font-normal">(7 kishilik)</span>
+                      </h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                        Ixcham guruhlar davrasi
+                      </p>
                     </div>
                   </div>
-                );
-              })
-            )}
+
+                  <div className="flex-shrink-0">
+                    {hasSmallExclusive ? (
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-amber-500 text-white flex items-center gap-1 shadow-xs">
+                        <Lock className="w-2.5 h-2.5" />
+                        Eksklyuziv
+                      </span>
+                    ) : smallOcc === 0 ? (
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Bo'sh (0/7)
+                      </span>
+                    ) : smallRem > 0 ? (
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                        {smallOcc}/7 (Yana {smallRem} ta)
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                        To'liq (7/7)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {smallRoomSessions.length === 0 ? (
+                    <div className="p-6 text-center bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-slate-400 text-xs space-y-1">
+                      <span className="text-xl block">🧖‍♂️</span>
+                      <p className="font-semibold text-slate-600 dark:text-slate-400">Kichik saunada seans yo'q</p>
+                      <p className="text-[10px] text-slate-400">Bu filtr bo'yicha mijoz topilmadi</p>
+                    </div>
+                  ) : (
+                    smallRoomSessions.map(renderSessionCard)
+                  )}
+                </div>
+              </div>
+
+              {/* 2-Ustun: Katta sauna (30 kishilik) */}
+              <div className="space-y-3">
+                <div className="p-3 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 flex items-center justify-between shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-sm shadow-xs flex-shrink-0">
+                      🏊‍♂️
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
+                        <span>Katta sauna</span>
+                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 font-normal">(30 kishilik)</span>
+                      </h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                        Katta jamoalar va guruhlar
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex-shrink-0">
+                    {hasBigExclusive ? (
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-amber-500 text-white flex items-center gap-1 shadow-xs">
+                        <Lock className="w-2.5 h-2.5" />
+                        Eksklyuziv
+                      </span>
+                    ) : bigOcc === 0 ? (
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Bo'sh (0/30)
+                      </span>
+                    ) : bigRem > 0 ? (
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                        {bigOcc}/30 (Yana {bigRem} ta)
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                        To'liq (30/30)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {bigRoomSessions.length === 0 ? (
+                    <div className="p-6 text-center bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-slate-400 text-xs space-y-1">
+                      <span className="text-xl block">🏊‍♂️</span>
+                      <p className="font-semibold text-slate-600 dark:text-slate-400">Katta saunada seans yo'q</p>
+                      <p className="text-[10px] text-slate-400">Bu filtr bo'yicha mijoz topilmadi</p>
+                    </div>
+                  ) : (
+                    bigRoomSessions.map(renderSessionCard)
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -960,7 +1392,7 @@ export default function RegistrationView() {
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  Xona sig'imi me'yordan oshdi!
+                  Sauna sig'imi me'yordan oshdi!
                 </h3>
                 <p className="text-xs text-amber-600 dark:text-amber-400 font-bold">
                   Admin tasdig'i talab etiladi
@@ -970,15 +1402,15 @@ export default function RegistrationView() {
 
             <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 space-y-2 text-xs">
               <div className="flex justify-between items-center">
-                <span className="text-slate-600 dark:text-slate-400">Tanlangan xona:</span>
+                <span className="text-slate-600 dark:text-slate-400">Tanlangan sauna:</span>
                 <span className="font-bold text-slate-900 dark:text-white">{selectedRoom.name}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-600 dark:text-slate-400">Belgilangan xona sig'imi:</span>
+                <span className="text-slate-600 dark:text-slate-400">Belgilangan sauna sig'imi:</span>
                 <span className="font-extrabold text-slate-900 dark:text-white">{selectedRoom.capacity} kishi</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-600 dark:text-slate-400">Hozir zalda bor mijozlar:</span>
+                <span className="text-slate-600 dark:text-slate-400">Hozir saunada bor mijozlar:</span>
                 <span className="font-bold text-slate-900 dark:text-white">{currentOcc} kishi (Bo'sh joy: {remainingSpotsInRoom > 0 ? remainingSpotsInRoom : 0} ta)</span>
               </div>
               <div className="flex justify-between items-center">
@@ -995,16 +1427,8 @@ export default function RegistrationView() {
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800/60 text-xs text-sky-800 dark:text-sky-300 flex items-start gap-2.5">
-              <span className="text-lg">🚹</span>
-              <div>
-                <span className="font-extrabold block">Faqat erkaklar bo'limi</span>
-                <span>Delfin saunasida oilaviy (er-xotin) qabul qilinmaydi. Barcha mehmonlar faqat erkaklar bo'lishi shart.</span>
-              </div>
-            </div>
-
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Mijozlar soni xona imkoniyatidan ortiq ({guestsCount} kishi). Agar xizmat ko'rsatishga rozi bo'lsangiz, admin sifatida tasdiqlab qabul qilishingiz mumkin.
+              Mijozlar soni sauna imkoniyatidan ortiq ({guestsCount} kishi). Agar xizmat ko'rsatishga rozi bo'lsangiz, admin sifatida tasdiqlab qabul qilishingiz mumkin.
             </p>
 
             <div className="grid grid-cols-2 gap-3 pt-2">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { formatTime24 } from '../../utils/dateUtils';
 import {
   Settings,
   ShieldCheck,
@@ -36,7 +37,7 @@ export default function SettingsView() {
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
   const [botPrompt, setBotPrompt] = useState<string>('status');
   const [botResponse, setBotResponse] = useState<string>(
-    `🐬 DELFIN SAUNA — JONLI STATUS\n\n👥 Ichkaridagi odamlar: 12 kishi\n🔥 Faol seanslar soni: 3 ta\n🚪 Band xonalar: VIP Lyuks, Standart 1, Standart 3\n\n✅ Tizim normal rejimda ishlamoqda.`
+    `🐬 DELFIN SAUNA — JONLI STATUS\n\n👥 Ichkaridagi odamlar: 12 kishi\n🔥 Faol seanslar soni: 3 ta\n🚪 Band saunalar: Kichik sauna, Katta sauna\n\n✅ Tizim normal rejimda ishlamoqda.`
   );
 
   const handleSaveTariffs = (e: React.FormEvent) => {
@@ -57,13 +58,13 @@ export default function SettingsView() {
 
   const triggerTelegramCommand = (cmd: string) => {
     setBotPrompt(cmd);
-    const nowTime = new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+    const nowTime = formatTime24(new Date());
     const activeS = sessions.filter((s) => s.status === 'active' || s.status === 'overtime');
     const totalInside = activeS.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
 
     if (cmd === 'status') {
       setBotResponse(
-        `🐬 *DELFIN SAUNA — JONLI STATUS* (${nowTime})\n\n👥 Ichkaridagi odamlar: ${totalInside} kishi\n🔥 Faol seanslar soni: ${activeS.length} ta\n🚪 Band xonalar: ${activeS.map((s) => s.roomName).join(', ') || "Hozircha barchasi bo'sh"}\n\n✅ Tizim normal rejimda ishlamoqda.`
+        `🐬 *DELFIN SAUNA — JONLI STATUS* (${nowTime})\n\n👥 Ichkaridagi odamlar: ${totalInside} kishi\n🔥 Faol seanslar soni: ${activeS.length} ta\n🚪 Band saunalar: ${activeS.map((s) => s.roomName).join(', ') || "Hozircha barchasi bo'sh"}\n\n✅ Tizim normal rejimda ishlamoqda.`
       );
     } else if (cmd === 'kassa') {
       setBotResponse(
@@ -377,7 +378,7 @@ export default function SettingsView() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {actionLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                  <td className="py-3 px-3 font-mono text-slate-400">{log.time}</td>
+                  <td className="py-3 px-3 font-mono text-slate-400">{formatTime24(log.time)}</td>
                   <td className="py-3 px-3 font-bold text-slate-800 dark:text-slate-200">
                     {log.author}
                   </td>

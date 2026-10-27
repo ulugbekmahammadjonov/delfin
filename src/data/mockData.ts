@@ -18,8 +18,8 @@ export const initialTariffs: Tariffs = {
 };
 
 export const getFreshRooms = (): Room[] => [
-  { id: 'r1', name: 'Kichik zal (7 kishilik)', type: 'standard', capacity: 7, status: 'partial', currentSessionId: 's1' },
-  { id: 'r2', name: 'Katta zal (30 kishilik)', type: 'standard', capacity: 30, status: 'free', currentSessionId: null },
+  { id: 'r1', name: 'Kichik sauna (7 kishilik)', type: 'standard', capacity: 7, status: 'partial', currentSessionId: 's1' },
+  { id: 'r2', name: 'Katta sauna (30 kishilik)', type: 'standard', capacity: 30, status: 'free', currentSessionId: null },
 ];
 
 export const initialClients: Client[] = [
@@ -36,16 +36,16 @@ export const initialClients: Client[] = [
     isBlacklisted: false,
     blacklistReason: null,
     registeredDate: '2025-11-10',
-    notes: 'Doimiy VIP mijoz. Odatda Kichik zalni yoki Katta zalni do\'stlari bilan buyurtma qiladi.',
+    notes: 'Doimiy VIP mijoz. Odatda Kichik saunani yoki Katta saunani do\'stlari bilan buyurtma qiladi.',
     visitsHistory: [
-      { id: 'v1_1', date: '2026-10-24', time: '18:30', roomName: 'Kichik zal (7 kishilik)', guestsCount: 5, durationHours: 2, totalAmount: 480000, paymentStatus: 'full', paymentMethod: 'Karta (Uzcard)', notes: 'Ko\'k choy va 2 ta eman venik' },
-      { id: 'v1_2', date: '2026-10-15', time: '19:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 6, durationHours: 2.5, totalAmount: 560000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: 'Meva assorti buyurtma qildi' },
-      { id: 'v1_3', date: '2026-09-28', time: '20:00', roomName: 'Katta zal (30 kishilik)', guestsCount: 14, durationHours: 3, totalAmount: 950000, paymentStatus: 'full', paymentMethod: 'Bank o\'tkazmasi', notes: 'Tug\'ilgan kun tadbiri' },
-      { id: 'v1_4', date: '2026-08-14', time: '18:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 4, durationHours: 2, totalAmount: 380000, paymentStatus: 'full', paymentMethod: 'Karta (Humo)', notes: '' },
-      { id: 'v1_5', date: '2026-07-02', time: '17:30', roomName: 'Kichik zal (7 kishilik)', guestsCount: 5, durationHours: 2, totalAmount: 450000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
-      { id: 'v1_6', date: '2026-05-18', time: '19:30', roomName: 'Katta zal (30 kishilik)', guestsCount: 10, durationHours: 2, totalAmount: 620000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: 'Hamkasblar bilan' },
-      { id: 'v1_7', date: '2026-03-22', time: '16:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 4, durationHours: 1.5, totalAmount: 320000, paymentStatus: 'full', paymentMethod: 'Karta', notes: 'Navro\'z bayrami munosabati bilan' },
-      { id: 'v1_8', date: '2025-12-30', time: '21:00', roomName: 'Katta zal (30 kishilik)', guestsCount: 12, durationHours: 3, totalAmount: 890000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: 'Yangi yil arafasi' },
+      { id: 'v1_1', date: '2026-10-24', time: '18:30', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 5, durationHours: 2, totalAmount: 480000, paymentStatus: 'full', paymentMethod: 'Karta (Uzcard)', notes: 'Ko\'k choy va 2 ta eman venik' },
+      { id: 'v1_2', date: '2026-10-15', time: '19:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 6, durationHours: 2.5, totalAmount: 560000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: 'Meva assorti buyurtma qildi' },
+      { id: 'v1_3', date: '2026-09-28', time: '20:00', roomName: 'Katta sauna (30 kishilik)', guestsCount: 14, durationHours: 3, totalAmount: 950000, paymentStatus: 'full', paymentMethod: 'Bank o\'tkazmasi', notes: 'Tug\'ilgan kun tadbiri' },
+      { id: 'v1_4', date: '2026-08-14', time: '18:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 4, durationHours: 2, totalAmount: 380000, paymentStatus: 'full', paymentMethod: 'Karta (Humo)', notes: '' },
+      { id: 'v1_5', date: '2026-07-02', time: '17:30', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 5, durationHours: 2, totalAmount: 450000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
+      { id: 'v1_6', date: '2026-05-18', time: '19:30', roomName: 'Katta sauna (30 kishilik)', guestsCount: 10, durationHours: 2, totalAmount: 620000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: 'Hamkasblar bilan' },
+      { id: 'v1_7', date: '2026-03-22', time: '16:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 4, durationHours: 1.5, totalAmount: 320000, paymentStatus: 'full', paymentMethod: 'Karta', notes: 'Navro\'z bayrami munosabati bilan' },
+      { id: 'v1_8', date: '2025-12-30', time: '21:00', roomName: 'Katta sauna (30 kishilik)', guestsCount: 12, durationHours: 3, totalAmount: 890000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: 'Yangi yil arafasi' },
     ],
   },
   {
@@ -63,11 +63,11 @@ export const initialClients: Client[] = [
     registeredDate: '2025-12-05',
     notes: 'Qayin supurgisini xush ko\'radi, issiq parni yaxshi ko\'radi.',
     visitsHistory: [
-      { id: 'v2_1', date: '2026-10-22', time: '17:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 7, durationHours: 2, totalAmount: 490000, paymentStatus: 'full', paymentMethod: 'Karta', notes: '2 ta qayin venik' },
-      { id: 'v2_2', date: '2026-09-19', time: '18:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 6, durationHours: 1.5, totalAmount: 370000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: 'Limonli choy' },
-      { id: 'v2_3', date: '2026-07-25', time: '19:00', roomName: 'Katta zal (30 kishilik)', guestsCount: 15, durationHours: 3, totalAmount: 920000, paymentStatus: 'full', paymentMethod: 'Karta', notes: 'Do\'stlar uchrashuvi' },
-      { id: 'v2_4', date: '2026-04-10', time: '16:30', roomName: 'Kichik zal (7 kishilik)', guestsCount: 5, durationHours: 2, totalAmount: 430000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
-      { id: 'v2_5', date: '2026-01-20', time: '18:30', roomName: 'Kichik zal (7 kishilik)', guestsCount: 4, durationHours: 2, totalAmount: 390000, paymentStatus: 'full', paymentMethod: 'Karta', notes: 'Qishki mavsum' },
+      { id: 'v2_1', date: '2026-10-22', time: '17:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 7, durationHours: 2, totalAmount: 490000, paymentStatus: 'full', paymentMethod: 'Karta', notes: '2 ta qayin venik' },
+      { id: 'v2_2', date: '2026-09-19', time: '18:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 6, durationHours: 1.5, totalAmount: 370000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: 'Limonli choy' },
+      { id: 'v2_3', date: '2026-07-25', time: '19:00', roomName: 'Katta sauna (30 kishilik)', guestsCount: 15, durationHours: 3, totalAmount: 920000, paymentStatus: 'full', paymentMethod: 'Karta', notes: 'Do\'stlar uchrashuvi' },
+      { id: 'v2_4', date: '2026-04-10', time: '16:30', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 5, durationHours: 2, totalAmount: 430000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
+      { id: 'v2_5', date: '2026-01-20', time: '18:30', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 4, durationHours: 2, totalAmount: 390000, paymentStatus: 'full', paymentMethod: 'Karta', notes: 'Qishki mavsum' },
     ],
   },
   {
@@ -85,10 +85,10 @@ export const initialClients: Client[] = [
     registeredDate: '2026-01-15',
     notes: 'Kechki payt kelishni afzal biladi.',
     visitsHistory: [
-      { id: 'v3_1', date: '2026-10-20', time: '21:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 4, durationHours: 2, totalAmount: 380000, paymentStatus: 'full', paymentMethod: 'QR (Click)', notes: 'Ko\'k choy' },
-      { id: 'v3_2', date: '2026-09-05', time: '20:30', roomName: 'Kichik zal (7 kishilik)', guestsCount: 5, durationHours: 2, totalAmount: 440000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
-      { id: 'v3_3', date: '2026-06-12', time: '19:00', roomName: 'Katta zal (30 kishilik)', guestsCount: 11, durationHours: 2.5, totalAmount: 750000, paymentStatus: 'full', paymentMethod: 'Karta', notes: '' },
-      { id: 'v3_4', date: '2026-03-08', time: '18:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 6, durationHours: 2, totalAmount: 470000, paymentStatus: 'full', paymentMethod: 'QR (Payme)', notes: '' },
+      { id: 'v3_1', date: '2026-10-20', time: '21:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 4, durationHours: 2, totalAmount: 380000, paymentStatus: 'full', paymentMethod: 'QR (Click)', notes: 'Ko\'k choy' },
+      { id: 'v3_2', date: '2026-09-05', time: '20:30', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 5, durationHours: 2, totalAmount: 440000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
+      { id: 'v3_3', date: '2026-06-12', time: '19:00', roomName: 'Katta sauna (30 kishilik)', guestsCount: 11, durationHours: 2.5, totalAmount: 750000, paymentStatus: 'full', paymentMethod: 'Karta', notes: '' },
+      { id: 'v3_4', date: '2026-03-08', time: '18:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 6, durationHours: 2, totalAmount: 470000, paymentStatus: 'full', paymentMethod: 'QR (Payme)', notes: '' },
     ],
   },
   {
@@ -106,9 +106,9 @@ export const initialClients: Client[] = [
     registeredDate: '2026-02-18',
     notes: 'Sport bilan shug\'ullanadi, musobaqalardan keyin keladi.',
     visitsHistory: [
-      { id: 'v4_1', date: '2026-10-26', time: '14:30', roomName: 'Katta zal (30 kishilik)', guestsCount: 16, durationHours: 2.5, totalAmount: 710000, paymentStatus: 'full', paymentMethod: 'Karta', notes: 'Jamoaviy tashrif' },
-      { id: 'v4_2', date: '2026-08-20', time: '18:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 5, durationHours: 2, totalAmount: 430000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
-      { id: 'v4_3', date: '2026-05-14', time: '17:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 4, durationHours: 1.5, totalAmount: 310000, paymentStatus: 'full', paymentMethod: 'Karta', notes: '' },
+      { id: 'v4_1', date: '2026-10-26', time: '14:30', roomName: 'Katta sauna (30 kishilik)', guestsCount: 16, durationHours: 2.5, totalAmount: 710000, paymentStatus: 'full', paymentMethod: 'Karta', notes: 'Jamoaviy tashrif' },
+      { id: 'v4_2', date: '2026-08-20', time: '18:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 5, durationHours: 2, totalAmount: 430000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
+      { id: 'v4_3', date: '2026-05-14', time: '17:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 4, durationHours: 1.5, totalAmount: 310000, paymentStatus: 'full', paymentMethod: 'Karta', notes: '' },
     ],
   },
   {
@@ -126,9 +126,9 @@ export const initialClients: Client[] = [
     registeredDate: '2026-03-01',
     notes: 'Oxirgi marta 220,000 so\'m hisobdan qarz qolgan. 2 kunda to\'layman degan.',
     visitsHistory: [
-      { id: 'v5_1', date: '2026-10-18', time: '20:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 4, durationHours: 2, totalAmount: 370000, paymentStatus: 'debt', paymentMethod: 'Nasiya / Qarz', notes: '150,000 to\'langan, 220,000 UZS qarz yozildi' },
-      { id: 'v5_2', date: '2026-09-02', time: '19:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 5, durationHours: 2, totalAmount: 420000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: 'To\'liq yopilgan' },
-      { id: 'v5_3', date: '2026-06-20', time: '18:30', roomName: 'Kichik zal (7 kishilik)', guestsCount: 3, durationHours: 1.5, totalAmount: 280000, paymentStatus: 'full', paymentMethod: 'Karta', notes: '' },
+      { id: 'v5_1', date: '2026-10-18', time: '20:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 4, durationHours: 2, totalAmount: 370000, paymentStatus: 'debt', paymentMethod: 'Nasiya / Qarz', notes: '150,000 to\'langan, 220,000 UZS qarz yozildi' },
+      { id: 'v5_2', date: '2026-09-02', time: '19:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 5, durationHours: 2, totalAmount: 420000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: 'To\'liq yopilgan' },
+      { id: 'v5_3', date: '2026-06-20', time: '18:30', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 3, durationHours: 1.5, totalAmount: 280000, paymentStatus: 'full', paymentMethod: 'Karta', notes: '' },
     ],
   },
   {
@@ -144,10 +144,10 @@ export const initialClients: Client[] = [
     isBlacklisted: false,
     blacklistReason: null,
     registeredDate: '2026-04-12',
-    notes: 'Katta zal uchun 380,000 so\'m to\'lov to\'lanmagan, telefoniga javob bermayapti.',
+    notes: 'Katta sauna uchun 380,000 so\'m to\'lov to\'lanmagan, telefoniga javob bermayapti.',
     visitsHistory: [
-      { id: 'v6_1', date: '2026-10-14', time: '21:30', roomName: 'Katta zal (30 kishilik)', guestsCount: 8, durationHours: 2, totalAmount: 580000, paymentStatus: 'debt', paymentMethod: 'Nasiya / Qarz', notes: '200,000 to\'langan, 380,000 UZS qarz qolgan' },
-      { id: 'v6_2', date: '2026-07-10', time: '19:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 4, durationHours: 1.5, totalAmount: 320000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
+      { id: 'v6_1', date: '2026-10-14', time: '21:30', roomName: 'Katta sauna (30 kishilik)', guestsCount: 8, durationHours: 2, totalAmount: 580000, paymentStatus: 'debt', paymentMethod: 'Nasiya / Qarz', notes: '200,000 to\'langan, 380,000 UZS qarz qolgan' },
+      { id: 'v6_2', date: '2026-07-10', time: '19:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 4, durationHours: 1.5, totalAmount: 320000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
     ],
   },
   {
@@ -165,9 +165,9 @@ export const initialClients: Client[] = [
     registeredDate: '2026-05-20',
     notes: 'Har doim qora choy limon bilan buyurtma beradi.',
     visitsHistory: [
-      { id: 'v7_1', date: '2026-10-26', time: '12:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 3, durationHours: 1, totalAmount: 200000, paymentStatus: 'full', paymentMethod: 'QR (Payme)', notes: '' },
-      { id: 'v7_2', date: '2026-09-14', time: '16:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 4, durationHours: 2, totalAmount: 380000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
-      { id: 'v7_3', date: '2026-07-04', time: '15:30', roomName: 'Kichik zal (7 kishilik)', guestsCount: 3, durationHours: 1.5, totalAmount: 270000, paymentStatus: 'full', paymentMethod: 'Karta', notes: '' },
+      { id: 'v7_1', date: '2026-10-26', time: '12:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 3, durationHours: 1, totalAmount: 200000, paymentStatus: 'full', paymentMethod: 'QR (Payme)', notes: '' },
+      { id: 'v7_2', date: '2026-09-14', time: '16:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 4, durationHours: 2, totalAmount: 380000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
+      { id: 'v7_3', date: '2026-07-04', time: '15:30', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 3, durationHours: 1.5, totalAmount: 270000, paymentStatus: 'full', paymentMethod: 'Karta', notes: '' },
     ],
   },
   {
@@ -185,9 +185,9 @@ export const initialClients: Client[] = [
     registeredDate: '2026-06-10',
     notes: 'Dam olish kunlari keladi.',
     visitsHistory: [
-      { id: 'v8_1', date: '2026-09-30', time: '18:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 4, durationHours: 1.5, totalAmount: 310000, paymentStatus: 'full', paymentMethod: 'Karta', notes: '' },
-      { id: 'v8_2', date: '2026-07-18', time: '17:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 3, durationHours: 1.5, totalAmount: 270000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
-      { id: 'v8_3', date: '2026-06-10', time: '19:30', roomName: 'Kichik zal (7 kishilik)', guestsCount: 3, durationHours: 1.5, totalAmount: 270000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: 'Birinchi tashrif' },
+      { id: 'v8_1', date: '2026-09-30', time: '18:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 4, durationHours: 1.5, totalAmount: 310000, paymentStatus: 'full', paymentMethod: 'Karta', notes: '' },
+      { id: 'v8_2', date: '2026-07-18', time: '17:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 3, durationHours: 1.5, totalAmount: 270000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
+      { id: 'v8_3', date: '2026-06-10', time: '19:30', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 3, durationHours: 1.5, totalAmount: 270000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: 'Birinchi tashrif' },
     ],
   },
   {
@@ -205,8 +205,8 @@ export const initialClients: Client[] = [
     registeredDate: '2026-01-08',
     notes: 'Qat\'iy taqiqda! Kirishi mumkin emas.',
     visitsHistory: [
-      { id: 'v9_1', date: '2026-08-15', time: '23:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 3, durationHours: 1, totalAmount: 180000, paymentStatus: 'debt', paymentMethod: 'To\'lanmagan', notes: 'Mebelga zarar va janjal bilan yakunlangan' },
-      { id: 'v9_2', date: '2026-01-08', time: '20:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 2, durationHours: 1, totalAmount: 200000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
+      { id: 'v9_1', date: '2026-08-15', time: '23:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 3, durationHours: 1, totalAmount: 180000, paymentStatus: 'debt', paymentMethod: 'To\'lanmagan', notes: 'Mebelga zarar va janjal bilan yakunlangan' },
+      { id: 'v9_2', date: '2026-01-08', time: '20:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 2, durationHours: 1, totalAmount: 200000, paymentStatus: 'full', paymentMethod: 'Naqd', notes: '' },
     ],
   },
   {
@@ -224,7 +224,7 @@ export const initialClients: Client[] = [
     registeredDate: '2026-07-22',
     notes: 'Qora ro\'yxatda va 150,000 UZS qarzi bor.',
     visitsHistory: [
-      { id: 'v10_1', date: '2026-07-22', time: '22:00', roomName: 'Kichik zal (7 kishilik)', guestsCount: 3, durationHours: 1.5, totalAmount: 330000, paymentStatus: 'debt', paymentMethod: 'Nasiya / Qarz', notes: '180,000 to\'lab, 150,000 qarz qoldirib qochgan' },
+      { id: 'v10_1', date: '2026-07-22', time: '22:00', roomName: 'Kichik sauna (7 kishilik)', guestsCount: 3, durationHours: 1.5, totalAmount: 330000, paymentStatus: 'debt', paymentMethod: 'Nasiya / Qarz', notes: '180,000 to\'lab, 150,000 qarz qoldirib qochgan' },
     ],
   },
 ];
@@ -253,7 +253,7 @@ export const getFreshSessions = (): Session[] => {
       phone: '+998903332211',
       guestsCount: 5,
       roomId: 'r1',
-      roomName: 'Kichik zal (7 kishilik)',
+      roomName: 'Kichik sauna (7 kishilik)',
       type: 'instant',
       durationHours: 2,
       startTime: timeOffset(-134),
@@ -280,7 +280,7 @@ export const getFreshSessions = (): Session[] => {
       phone: '+998977654321',
       guestsCount: 18,
       roomId: 'r2',
-      roomName: 'Katta zal (30 kishilik)',
+      roomName: 'Katta sauna (30 kishilik)',
       type: 'booking',
       durationHours: 2.5,
       startTime: timeOffset(45),
@@ -307,7 +307,7 @@ export const getFreshSessions = (): Session[] => {
       phone: '+998901234567',
       guestsCount: 7,
       roomId: 'r1',
-      roomName: 'Kichik zal (7 kishilik)',
+      roomName: 'Kichik sauna (7 kishilik)',
       type: 'instant',
       durationHours: 1.5,
       startTime: timeOffset(-240),
@@ -336,7 +336,7 @@ export const initialSessions: Session[] = getFreshSessions();
 export const initialExpenses: Expense[] = [
   { id: 'e1', time: '10:15', category: 'Xodimlar tushligi', amount: 120000, note: "Oshxona osh va somsa xarajatlari", author: "Kassir Dilshod" },
   { id: 'e2', time: '11:30', category: 'Yuvish va gigiyena', amount: 185000, note: "Xlor, detarjent va tozalash vositalari", author: "Kassir Dilshod" },
-  { id: 'e3', time: '12:00', category: 'Mayda ta\'mirlash', amount: 75000, note: "Standart 2 xona dush shlangi almashtirildi", author: "Super Admin" },
+  { id: 'e3', time: '12:00', category: 'Mayda ta\'mirlash', amount: 75000, note: "Kichik sauna dush shlangi almashtirildi", author: "Super Admin" },
 ];
 
 export const initialActionLogs: ActionLog[] = [

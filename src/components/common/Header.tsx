@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   Users,
   RotateCcw,
+  PanelLeft,
 } from 'lucide-react';
 
 export default function Header() {
@@ -30,6 +31,8 @@ export default function Header() {
     setIsShiftModalOpen,
     sessions,
     resetAllData,
+    isSidebarCollapsed,
+    toggleSidebar,
   } = useApp();
 
   const overtimeSessions = sessions.filter((s) => s.status === 'overtime');
@@ -43,7 +46,16 @@ export default function Header() {
     <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-slate-800 shadow-sm px-4 lg:px-6 py-2.5 transition-colors">
       <div className="flex items-center justify-between gap-3">
         {/* Left: Brand info & live alert badge */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Sidebar Toggle Button */}
+          <button
+            onClick={toggleSidebar}
+            className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            title={isSidebarCollapsed ? "Sidebarni ochish" : "Sidebarni yopish"}
+          >
+            <PanelLeft className="w-5 h-5" />
+          </button>
+
           <div
             onClick={() => setCurrentTab('dashboard')}
             className="flex items-center gap-2.5 cursor-pointer group select-none"
@@ -92,7 +104,7 @@ export default function Header() {
           <button
             onClick={() => setCurrentTab('registration')}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 text-white shadow-md shadow-sky-600/25 active:scale-95 transition-all"
-            title="15 soniyada yangi mijoz qabul qilish"
+            title="Yangi mijoz qabul qilish"
           >
             <PlusCircle className="w-4 h-4" />
             <span className="hidden sm:inline">{t.newRegistrationBtn}</span>

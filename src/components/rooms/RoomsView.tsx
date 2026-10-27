@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { DoorClosed, UserPlus, ArrowRight, Users, AlertCircle } from 'lucide-react';
+import { DoorClosed, UserPlus, ArrowRight, Users, AlertCircle, Lock } from 'lucide-react';
 
 export default function RoomsView() {
   const { t, rooms, sessions, setCurrentTab } = useApp();
@@ -48,13 +48,13 @@ export default function RoomsView() {
               </span>
             </h2>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-              Mavjud zallar: <strong>Kichik zal (7 kishi)</strong> va <strong>Katta zal (30 kishi)</strong>. Bo'sh joylar bo'lsa yangi mijozlar qabul qilinishi mumkin.
+              Mavjud saunalar: <strong>Kichik sauna (7 kishi)</strong> va <strong>Katta sauna (30 kishi)</strong>. Bo'sh joylar bo'lsa yangi mijozlar qabul qilinishi mumkin.
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm">
-            Jami: 2 ta zal
+            Jami: 2 ta sauna
           </span>
         </div>
       </div>
@@ -64,13 +64,17 @@ export default function RoomsView() {
           const activeSessions = sessions.filter(
             (s) => s.roomId === room.id && (s.status === 'active' || s.status === 'overtime')
           );
-          const occupiedCount = activeSessions.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
-          const remainingSpots = room.capacity - occupiedCount;
+          const exclusiveSession = activeSessions.find((s) => s.isExclusive);
+          const isExclusiveOccupied = Boolean(exclusiveSession);
 
-          const isFree = occupiedCount === 0;
-          const isPartial = occupiedCount > 0 && occupiedCount < room.capacity;
-          const isFull = occupiedCount === room.capacity;
-          const isOverCapacity = occupiedCount > room.capacity;
+          const actualPeopleCount = activeSessions.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
+          const occupiedCount = isExclusiveOccupied ? room.capacity : actualPeopleCount;
+          const remainingSpots = isExclusiveOccupied ? 0 : Math.max(0, room.capacity - occupiedCount);
+
+          const isFree = actualPeopleCount === 0;
+          const isPartial = !isExclusiveOccupied && occupiedCount > 0 && occupiedCount < room.capacity;
+          const isFull = isExclusiveOccupied || occupiedCount === room.capacity;
+          const isOverCapacity = !isExclusiveOccupied && occupiedCount > room.capacity;
 
           const hasOvertime = activeSessions.some((s) => s.status === 'overtime');
 
@@ -80,6 +84,8 @@ export default function RoomsView() {
               className={`rounded-2xl p-5 border transition-all duration-200 flex flex-col justify-between space-y-4 shadow-sm ${
                 isFree
                   ? 'bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-800/80 hover:border-emerald-500'
+                  : isExclusiveOccupied
+                  ? 'bg-amber-50/50 dark:bg-amber-950/30 border-amber-400 dark:border-amber-600 ring-1 ring-amber-400/30'
                   : isPartial
                   ? 'bg-amber-50/40 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700 ring-1 ring-amber-400/20'
                   : isOverCapacity
@@ -110,6 +116,8 @@ export default function RoomsView() {
                   className={`px-3 py-1 rounded-full text-xs font-black border flex items-center gap-1.5 ${
                     isFree
                       ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                      : isExclusiveOccupied
+                      ? 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border-amber-400 dark:border-amber-600 ring-1 ring-amber-400/30'
                       : isPartial
                       ? 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border-amber-400 dark:border-amber-600 animate-pulse'
                       : isOverCapacity
@@ -121,6 +129,11 @@ export default function RoomsView() {
                     <>
                       <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                       <span>Bo'sh (0/{room.capacity})</span>
+                    </>
+                  ) : isExclusiveOccupied ? (
+                    <>
+                      <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      <span>Eksklyuziv band (0/{room.capacity} ta bo'sh joy)</span>
                     </>
                   ) : isPartial ? (
                     <>
@@ -147,12 +160,16 @@ export default function RoomsView() {
                   <div className="flex justify-between items-center text-xs font-bold">
                     <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1">
                       <Users className="w-3.5 h-3.5 text-slate-400" />
-                      Bandlik: {occupiedCount} / {room.capacity} kishi
+                      {isExclusiveOccupied
+                        ? `Bandlik: ${actualPeopleCount} kishi (${room.capacity} kishilik to'liq yopilgan)`
+                        : `Bandlik: ${occupiedCount} / ${room.capacity} kishi`}
                     </span>
                     <span
                       className={`font-black ${
                         isFree
                           ? 'text-emerald-600 dark:text-emerald-400'
+                          : isExclusiveOccupied
+                          ? 'text-amber-600 dark:text-amber-400'
                           : isPartial
                           ? 'text-amber-600 dark:text-amber-400'
                           : 'text-rose-600 dark:text-rose-400'
@@ -160,6 +177,8 @@ export default function RoomsView() {
                     >
                       {isFree
                         ? `${room.capacity} ta bo'sh joy`
+                        : isExclusiveOccupied
+                        ? "Boshqa mijoz kiritilmaydi (Yopiq sauna)"
                         : isPartial
                         ? `Yana ${remainingSpots} ta mijoz qabul qilish mumkin`
                         : isOverCapacity
@@ -172,6 +191,8 @@ export default function RoomsView() {
                       className={`h-full rounded-full transition-all duration-500 ${
                         isFree
                           ? 'bg-slate-300 dark:bg-slate-600'
+                          : isExclusiveOccupied
+                          ? 'bg-gradient-to-r from-amber-500 to-rose-500'
                           : isPartial
                           ? 'bg-amber-500'
                           : 'bg-rose-500'
@@ -187,8 +208,10 @@ export default function RoomsView() {
                 {activeSessions.length > 0 ? (
                   <div className="p-3.5 rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 space-y-2 text-xs">
                     <div className="flex justify-between items-center text-[11px] font-bold text-slate-500 dark:text-slate-400 pb-1 border-b border-slate-100 dark:border-slate-700/60">
-                      <span>Zaldagi faol seanslar ({activeSessions.length} ta guruh):</span>
-                      <span className="font-mono text-slate-900 dark:text-white">Jami: {occupiedCount} kishi</span>
+                      <span>Saunadagi faol seanslar ({activeSessions.length} ta guruh):</span>
+                      <span className="font-mono text-slate-900 dark:text-white">
+                        {isExclusiveOccupied ? `${actualPeopleCount} kishi (To'liq sauna)` : `Jami: ${occupiedCount} kishi`}
+                      </span>
                     </div>
 
                     <div className="space-y-1.5 max-h-28 overflow-y-auto pr-1">
@@ -204,6 +227,12 @@ export default function RoomsView() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
+                            {s.isExclusive && (
+                              <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-0.5">
+                                <Lock className="w-2.5 h-2.5" />
+                                Eksklyuziv
+                              </span>
+                            )}
                             <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
                               {s.guestsCount} kishi
                             </span>
@@ -223,7 +252,7 @@ export default function RoomsView() {
                   </div>
                 ) : (
                   <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 text-xs text-center text-slate-400">
-                    Zal mutlaqo bo'sh va yangi erkaklar guruhini qabul qilishga tayyor.
+                    Sauna mutlaqo bo'sh va yangi erkaklar guruhini qabul qilishga tayyor.
                   </div>
                 )}
               </div>
@@ -238,6 +267,23 @@ export default function RoomsView() {
                     <UserPlus className="w-3.5 h-3.5" />
                     <span>Mijoz qabul qilish ({room.capacity} ta bo'sh joy)</span>
                   </button>
+                ) : isExclusiveOccupied ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCurrentTab('registration')}
+                      className="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 flex items-center justify-center gap-1.5"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Sauna to'liq yopilgan (Boshqa mijoz olinmaydi)</span>
+                    </button>
+                    <button
+                      onClick={() => setCurrentTab('registration')}
+                      className="py-2.5 px-3 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
+                    >
+                      <span>Ko'rish</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ) : isPartial ? (
                   <div className="flex gap-2">
                     <button
@@ -261,7 +307,7 @@ export default function RoomsView() {
                       onClick={() => setCurrentTab('registration')}
                       className="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-1"
                     >
-                      <span>Zaldagi seanslarni ko'rish</span>
+                      <span>Saunadagi seanslarni ko'rish</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                     <button

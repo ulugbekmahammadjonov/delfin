@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { formatTime24 } from '../../utils/dateUtils';
 import {
   Wallet,
   ArrowDownRight,
@@ -192,7 +193,7 @@ export default function CashierView() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {expenses.map((exp) => (
                 <tr key={exp.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                  <td className="py-3 px-3 font-mono text-slate-400">{exp.time}</td>
+                  <td className="py-3 px-3 font-mono text-slate-400">{formatTime24(exp.time)}</td>
                   <td className="py-3 px-3 font-bold text-slate-800 dark:text-slate-200">
                     {exp.category}
                   </td>

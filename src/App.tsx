@@ -31,7 +31,7 @@ function MainLayout() {
   const mobileNavItems = [
     { id: 'dashboard', path: '/', label: 'Boshqaruv', icon: LayoutDashboard },
     { id: 'registration', path: '/registration', label: 'Qabul', icon: Timer },
-    { id: 'rooms', path: '/rooms', label: 'Xonalar', icon: DoorClosed },
+    { id: 'rooms', path: '/rooms', label: 'Saunalar', icon: DoorClosed },
     { id: 'minibar', path: '/minibar', label: 'Mini-Bar', icon: ShoppingBag },
     { id: 'crm', path: '/crm', label: 'CRM', icon: Users },
     { id: 'cashier', path: '/cashier', label: 'Kassa', icon: Wallet },
@@ -47,7 +47,7 @@ function MainLayout() {
         <Sidebar />
 
         {/* Content Area - ONLY THIS SCROLLS */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-24 md:pb-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 max-w-7xl xl:max-w-[1600px] mx-auto w-full pb-24 md:pb-8 transition-all">
           <Routes>
             <Route path="/" element={<DashboardView />} />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
