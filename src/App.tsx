@@ -1,19 +1,16 @@
 import React from 'react';
 import { Routes, Route, Navigate, Link } from 'react-router-dom';
-import { AppProvider, useApp } from './context/AppContext';
-import Header from './components/common/Header';
-import Sidebar from './components/common/Sidebar';
-import ReceiptModal from './components/common/ReceiptModal';
-import MiniBarModal from './components/common/MiniBarModal';
-import ShiftCloseModal from './components/common/ShiftCloseModal';
-
-import DashboardView from './components/dashboard/DashboardView';
-import RegistrationView from './components/registration/RegistrationView';
-import RoomsView from './components/rooms/RoomsView';
-import MiniBarView from './components/minibar/MiniBarView';
-import CrmView from './components/crm/CrmView';
-import CashierView from './components/cashier/CashierView';
-import SettingsView from './components/settings/SettingsView';
+import { AppProvider, useApp } from '@/app/providers/AppContext';
+import { Header, Sidebar, ReceiptModal, MiniBarModal, ShiftCloseModal } from '@/widgets';
+import {
+  DashboardPage,
+  RegistrationPage,
+  RoomsPage,
+  MiniBarPage,
+  CrmPage,
+  CashierPage,
+  SettingsPage,
+} from '@/pages';
 
 import {
   LayoutDashboard,
@@ -49,14 +46,14 @@ function MainLayout() {
         {/* Content Area - ONLY THIS SCROLLS */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 max-w-7xl xl:max-w-[1600px] mx-auto w-full pb-24 md:pb-8 transition-all">
           <Routes>
-            <Route path="/" element={<DashboardView />} />
+            <Route path="/" element={<DashboardPage />} />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
-            <Route path="/registration" element={<RegistrationView />} />
-            <Route path="/rooms" element={<RoomsView />} />
-            <Route path="/minibar" element={<MiniBarView />} />
-            <Route path="/crm" element={<CrmView />} />
-            <Route path="/cashier" element={<CashierView />} />
-            <Route path="/settings" element={<SettingsView />} />
+            <Route path="/registration" element={<RegistrationPage />} />
+            <Route path="/rooms" element={<RoomsPage />} />
+            <Route path="/minibar" element={<MiniBarPage />} />
+            <Route path="/crm" element={<CrmPage />} />
+            <Route path="/cashier" element={<CashierPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
