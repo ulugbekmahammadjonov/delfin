@@ -39,7 +39,7 @@ export default function RegistrationView() {
   const [clientName, setClientName] = useState<string>('');
   const [matchedClient, setMatchedClient] = useState<Client | null>(null);
   const [guestsCount, setGuestsCount] = useState<number>(4);
-  const [acceptMaxGuestsException, setAcceptMaxGuestsException] = useState<boolean>(false);
+  const [isCapacityModalOpen, setIsCapacityModalOpen] = useState<boolean>(false);
   const [visitType, setVisitType] = useState<SessionType>('instant');
   const [bookingDate, setBookingDate] = useState<string>('Bugun');
   const [bookingTime, setBookingTime] = useState<string>('14:30');
@@ -103,27 +103,24 @@ export default function RegistrationView() {
   const calculatedTotal = Math.max(0, baseTariffPrice + extraGuestPrice - Number(discountAmount || 0));
   const finalPrice = customPrice !== '' ? Number(customPrice) : calculatedTotal;
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const selectedRoom = rooms.find((r) => r.id === selectedRoomId);
 
-    if (!clientName.trim()) {
-      alert("Iltimos, mijoz ismini kiriting!");
-      return;
-    }
+  const activeInSelectedRoom = sessions.filter(
+    (s) => s.roomId === selectedRoomId && (s.status === 'active' || s.status === 'overtime')
+  );
+  const currentOcc = activeInSelectedRoom.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
+  const remainingSpotsInRoom = selectedRoom ? selectedRoom.capacity - currentOcc : 0;
+  const totalGuestsAfterAdd = currentOcc + guestsCount;
+  const isExceedingCapacity = Boolean(selectedRoom && totalGuestsAfterAdd > selectedRoom.capacity);
+  const excessCount = selectedRoom ? Math.max(0, totalGuestsAfterAdd - selectedRoom.capacity) : 0;
 
-    if (guestsCount > 7 && !acceptMaxGuestsException) {
-      alert("Xonada 7 kishidan ortiq me'yordan ortiq! Iltimos, istisno tasdig'ini belgilang.");
-      return;
-    }
-
-    const room = rooms.find((r) => r.id === selectedRoomId);
-
+  const executeAddSession = () => {
     addSession({
       clientName: clientName.trim(),
       phone: phone.trim(),
       guestsCount: Number(guestsCount),
       roomId: selectedRoomId,
-      roomName: room ? room.name : 'Standart Xona',
+      roomName: selectedRoom ? selectedRoom.name : 'Xona',
       type: visitType,
       durationHours: effectiveHours,
       baseAmount: baseTariffPrice,
@@ -143,6 +140,23 @@ export default function RegistrationView() {
     setNotes('');
     setCustomPrice('');
     setDiscountAmount(0);
+    setIsCapacityModalOpen(false);
+  };
+
+  const handleRegisterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!clientName.trim()) {
+      alert("Iltimos, mijoz ismini kiriting!");
+      return;
+    }
+
+    if (isExceedingCapacity) {
+      setIsCapacityModalOpen(true);
+      return;
+    }
+
+    executeAddSession();
   };
 
   const getTimerDetails = (session: Session) => {
@@ -350,21 +364,15 @@ export default function RegistrationView() {
                 </button>
               </div>
 
-              {guestsCount > 7 && (
-                <div className="mt-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 space-y-1.5">
-                  <div className="flex items-center gap-1 font-bold text-[11px]">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{t.maxGuestsWarn}</span>
+              {isExceedingCapacity && selectedRoom && (
+                <div className="mt-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-[11px]">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                    <span>Sig'im me'yordan oshadi: {selectedRoom.name} (Sig'imi: {selectedRoom.capacity} kishi)</span>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer text-[11px]">
-                    <input
-                      type="checkbox"
-                      checked={acceptMaxGuestsException}
-                      onChange={(e) => setAcceptMaxGuestsException(e.target.checked)}
-                      className="rounded text-sky-600 focus:ring-sky-500"
-                    />
-                    <span className="font-semibold">{t.acceptException}</span>
-                  </label>
+                  <p className="text-[10px] text-amber-700 dark:text-amber-300 leading-tight">
+                    Ichkarida {currentOcc} kishi bor + kiritilayotgan {guestsCount} kishi = jami {totalGuestsAfterAdd} kishi (+{excessCount} kishi me'yordan ortiq). "Qabul qilish" bosilganda tasdiq modal oynasi chiqadi.
+                  </p>
                 </div>
               )}
             </div>
@@ -426,20 +434,65 @@ export default function RegistrationView() {
             </div>
 
             <div>
-              <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                {t.roomLabel}
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="font-bold text-slate-700 dark:text-slate-300">
+                  {t.roomLabel}
+                </label>
+                <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/80 px-2 py-0.5 rounded-full border border-sky-200 dark:border-sky-800 flex items-center gap-1">
+                  <span>🚹</span> Faqat erkaklar bo'limi
+                </span>
+              </div>
               <select
                 value={selectedRoomId}
                 onChange={(e) => setSelectedRoomId(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
               >
-                {rooms.map((room) => (
-                  <option key={room.id} value={room.id}>
-                    {room.name} — ({room.status === 'free' ? "Bo'sh (Tayyor)" : room.status === 'cleaning' ? "Tozalanmoqda" : "Band"})
-                  </option>
-                ))}
+                {rooms.map((room) => {
+                  const active = sessions.filter(
+                    (s) => s.roomId === room.id && (s.status === 'active' || s.status === 'overtime')
+                  );
+                  const occ = active.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
+                  const rem = room.capacity - occ;
+
+                  const statusStr =
+                    occ === 0
+                      ? `🟢 Bo'sh (${room.capacity} ta joy)`
+                      : rem > 0
+                      ? `🟡 Joy bor (${occ}/${room.capacity} kishi • Yana ${rem} ta joy)`
+                      : `🔴 To'liq band (${room.capacity}/${room.capacity})`;
+
+                  return (
+                    <option key={room.id} value={room.id}>
+                      {room.name} — {statusStr}
+                    </option>
+                  );
+                })}
               </select>
+              {selectedRoom && (
+                <div className="mt-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs flex items-center justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Joriy bandlik holati:</span>
+                  {currentOcc === 0 ? (
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      Bo'sh ({selectedRoom.capacity} ta bo'sh joy)
+                    </span>
+                  ) : remainingSpotsInRoom > 0 ? (
+                    <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-lg border border-amber-300 dark:border-amber-700">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                      Joy bor ({currentOcc}/{selectedRoom.capacity} kishi • Yana {remainingSpotsInRoom} ta joy bor)
+                    </span>
+                  ) : (
+                    <span className="font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                      To'liq band ({selectedRoom.capacity}/{selectedRoom.capacity})
+                    </span>
+                  )}
+                </div>
+              )}
+              <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                <span className="text-amber-500 font-bold">ℹ️</span>
+                <span>Barcha xonalar faqat erkaklar uchun (oilaviy er-xotin qabul qilinmaydi).</span>
+              </div>
             </div>
 
             <div>
@@ -896,6 +949,84 @@ export default function RegistrationView() {
           </div>
         </div>
       </div>
+
+      {/* Exceeding Capacity Warning Modal */}
+      {isCapacityModalOpen && selectedRoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full border border-amber-300 dark:border-amber-700/80 shadow-2xl space-y-4 animate-scaleUp">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl flex-shrink-0">
+                ⚠️
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  Xona sig'imi me'yordan oshdi!
+                </h3>
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-bold">
+                  Admin tasdig'i talab etiladi
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600 dark:text-slate-400">Tanlangan xona:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{selectedRoom.name}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600 dark:text-slate-400">Belgilangan xona sig'imi:</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">{selectedRoom.capacity} kishi</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600 dark:text-slate-400">Hozir zalda bor mijozlar:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{currentOcc} kishi (Bo'sh joy: {remainingSpotsInRoom > 0 ? remainingSpotsInRoom : 0} ta)</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600 dark:text-slate-400">Yangi kiritilayotgan mehmonlar:</span>
+                <span className="font-black text-rose-600 dark:text-rose-400">{guestsCount} kishi</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600 dark:text-slate-400">Jami kutilayotgan mijozlar soni:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{totalGuestsAfterAdd} kishi</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-amber-200 dark:border-amber-800/60 font-bold">
+                <span className="text-amber-800 dark:text-amber-300">Sig'imdan ortiqcha:</span>
+                <span className="text-rose-600 dark:text-rose-400 font-black text-sm">+{excessCount} kishi</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800/60 text-xs text-sky-800 dark:text-sky-300 flex items-start gap-2.5">
+              <span className="text-lg">🚹</span>
+              <div>
+                <span className="font-extrabold block">Faqat erkaklar bo'limi</span>
+                <span>Delfin saunasida oilaviy (er-xotin) qabul qilinmaydi. Barcha mehmonlar faqat erkaklar bo'lishi shart.</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Mijozlar soni xona imkoniyatidan ortiq ({guestsCount} kishi). Agar xizmat ko'rsatishga rozi bo'lsangiz, admin sifatida tasdiqlab qabul qilishingiz mumkin.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsCapacityModalOpen(false)}
+                className="py-2.5 px-3 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+              >
+                Bekor qilish
+              </button>
+              <button
+                type="button"
+                onClick={executeAddSession}
+                className="py-2.5 px-3 rounded-xl text-xs font-black text-white bg-amber-600 hover:bg-amber-500 shadow-md shadow-amber-600/30 transition-all flex items-center justify-center gap-1.5"
+              >
+                <ShieldAlert className="w-4 h-4" />
+                <span>Admin tasdig'i (Qabul qilish)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

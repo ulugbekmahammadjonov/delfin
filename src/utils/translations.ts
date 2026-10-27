@@ -144,13 +144,12 @@ export const translations: Record<LangType, Record<string, string>> = {
     cancelBooking: "Bronni bekor qilish",
     
     // Rooms
-    roomsTitle: "Xonalar va Kabinalar Holati",
-    roomsSubtitle: "Jonli xonalar bandligi va tozalash (uborka) nazorati",
+    roomsTitle: "Xonalar va Zallar Holati",
+    roomsSubtitle: "Jonli zallar bandligi, bo'sh o'rinlar va mijozlar soni nazorati",
     roomStatusFree: "Bo'sh (Tayyor)",
-    roomStatusBusy: "Band (Mijoz ichkarida)",
-    roomStatusCleaning: "Tozalanmoqda (Uborka)",
-    setRoomReady: "Tayyor (Tozalab bo'lindi)",
-    markCleaning: "Tozalashga o'tkazish",
+    roomStatusPartial: "Joy bor (Qisman band)",
+    roomStatusBusy: "To'liq band",
+    spotsLeft: "ta bo'sh joy bor",
     
     // Mini-Bar
     miniBarTitle: "Mini-Bar va Qo'shimcha Xizmatlar",
@@ -336,13 +335,12 @@ export const translations: Record<LangType, Record<string, string>> = {
     printReceipt: "Чек чиқариш",
     cancelBooking: "Бронни бекор қилиш",
     
-    roomsTitle: "Хоналар ва Кабиналар Ҳолати",
-    roomsSubtitle: "Жонли хоналар бандлиги ва тозалаш назорати",
+    roomsTitle: "Хоналар ва Заллар Ҳолати",
+    roomsSubtitle: "Жонли заллар бандлиги, бўш ўринлар ва мижозлар сони назорати",
     roomStatusFree: "Бўш (Тайёр)",
-    roomStatusBusy: "Банд (Мижоз ичкарида)",
-    roomStatusCleaning: "Тозаланмоқда (Уборка)",
-    setRoomReady: "Тайёр (Тозалаб бўлинди)",
-    markCleaning: "Тозалашга ўтказиш",
+    roomStatusPartial: "Жой бор (Қисман банд)",
+    roomStatusBusy: "Тўлиқ банд",
+    spotsLeft: "та бўш жой бор",
     
     miniBarTitle: "Мини-Бар ва Қўшимча Хизматлар",
     miniBarSubtitle: "Ички савдо, маҳсулотлар ва омбор ҳисоби",
@@ -524,13 +522,12 @@ export const translations: Record<LangType, Record<string, string>> = {
     printReceipt: "Печать чека",
     cancelBooking: "Отменить бронь",
     
-    roomsTitle: "Состояние Залов и Кабинок",
-    roomsSubtitle: "Контроль занятости и уборки в реальном времени",
+    roomsTitle: "Состояние Залов",
+    roomsSubtitle: "Контроль занятости, свободных мест и количества гостей в реальном времени",
     roomStatusFree: "Свободен (Готов)",
-    roomStatusBusy: "Занят (Гости внутри)",
-    roomStatusCleaning: "Уборка",
-    setRoomReady: "Готов (Убрано)",
-    markCleaning: "Отправить на уборку",
+    roomStatusPartial: "Есть места (Частично занят)",
+    roomStatusBusy: "Полностью занят",
+    spotsLeft: "свободных мест",
     
     miniBarTitle: "Мини-Бар и Доп. Услуги",
     miniBarSubtitle: "Внутренняя торговля, склад и остатки",

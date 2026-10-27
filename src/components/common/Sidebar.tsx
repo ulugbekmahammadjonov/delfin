@@ -23,7 +23,7 @@ export default function Sidebar() {
 
   const overtimeCount = sessions.filter((s) => s.status === 'overtime').length;
   const activeCount = sessions.filter((s) => s.status === 'active').length;
-  const cleaningRoomsCount = rooms.filter((r) => r.status === 'cleaning').length;
+  const partialRoomsCount = rooms.filter((r) => r.status === 'partial').length;
   const lowStockCount = products.filter((p) => p.stock <= 10).length;
 
   const menuItems = [
@@ -54,9 +54,9 @@ export default function Sidebar() {
       path: '/rooms',
       label: t.rooms,
       icon: DoorClosed,
-      badge: cleaningRoomsCount > 0 ? (
-        <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-amber-500/20 text-amber-500">
-          {cleaningRoomsCount}
+      badge: partialRoomsCount > 0 ? (
+        <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30">
+          Joy bor
         </span>
       ) : null,
     },
