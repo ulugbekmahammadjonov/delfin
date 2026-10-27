@@ -85,10 +85,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Core Data States with persistence
   const [tariffs, setTariffs] = useState<Tariffs>(() => loadLocal('tariffs', initialTariffs));
-  const [rooms, setRooms] = useState<Room[]>(() => loadLocal('rooms', getFreshRooms()));
-  const [clients, setClients] = useState<Client[]>(() => loadLocal('clients', initialClients));
+  const [rooms, setRooms] = useState<Room[]>(() => {
+    const loaded = loadLocal<Room[]>('rooms', []);
+    if (loaded && loaded.length === 2 && loaded.every((r) => r.id === 'r1' || r.id === 'r2')) {
+      return loaded.map((r) => ((r.status as string) === 'cleaning' ? { ...r, status: 'free' as const } : r));
+    }
+    return getFreshRooms();
+  });
+  const [clients, setClients] = useState<Client[]>(() => {
+    const loaded = loadLocal<Client[]>('clients', []);
+    if (loaded && loaded.length > 0 && loaded.some((c) => c.visitsHistory && c.visitsHistory.length > 0)) {
+      return loaded;
+    }
+    return initialClients;
+  });
   const [products, setProducts] = useState<Product[]>(() => loadLocal('products', initialProducts));
-  const [sessions, setSessions] = useState<Session[]>(() => loadLocal('sessions', getFreshSessions()));
+  const [sessions, setSessions] = useState<Session[]>(() => {
+    const loaded = loadLocal<Session[]>('sessions', []);
+    if (loaded && loaded.length > 0 && loaded.every((s) => s.roomId === 'r1' || s.roomId === 'r2')) {
+      return loaded;
+    }
+    return getFreshSessions();
+  });
   const [expenses, setExpenses] = useState<Expense[]>(() => loadLocal('expenses', initialExpenses));
   const [actionLogs, setActionLogs] = useState<ActionLog[]>(() => loadLocal('actionLogs', initialActionLogs));
 
@@ -283,11 +301,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (sessionData.type === 'instant' && sessionData.roomId) {
       setRooms((prev) =>
-        prev.map((r) =>
-          r.id === sessionData.roomId
-            ? { ...r, status: 'busy', currentSessionId: newId }
-            : r
-        )
+        prev.map((r) => {
+          if (r.id !== sessionData.roomId) return r;
+          const currentActive = sessions.filter(
+            (s) => s.roomId === r.id && (s.status === 'active' || s.status === 'overtime')
+          );
+          const totalGuests =
+            currentActive.reduce((acc, s) => acc + (s.guestsCount || 0), 0) + (sessionData.guestsCount || 1);
+          const newStatus: RoomStatus = totalGuests >= r.capacity ? 'busy' : 'partial';
+          return { ...r, status: newStatus, currentSessionId: newId };
+        })
       );
     }
 
@@ -341,17 +364,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
 
     if (session.roomId) {
+      const remainingActiveSessions = sessions.filter(
+        (s) => s.id !== sessionId && s.roomId === session.roomId && (s.status === 'active' || s.status === 'overtime')
+      );
+      const remainingGuests = remainingActiveSessions.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
+      const room = rooms.find((r) => r.id === session.roomId);
+      const capacity = room?.capacity || 7;
+
+      const newStatus: RoomStatus =
+        remainingGuests === 0 ? 'free' : remainingGuests < capacity ? 'partial' : 'busy';
+
       setRooms((prev) =>
         prev.map((r) =>
           r.id === session.roomId
-            ? { ...r, status: 'cleaning' as const, currentSessionId: null }
+            ? { ...r, status: newStatus, currentSessionId: remainingActiveSessions[0]?.id || null }
             : r
         )
       );
     }
 
     soundManager.playSuccess();
-    addLog(`Seans yakunlandi: ${session.roomName} (${session.clientName}). Xona "Tozalanmoqda (Uborka)" holatiga o'tkazildi.`);
+    addLog(`Seans yakunlandi: ${session.roomName} (${session.clientName}).`);
   };
 
   const startBookingSession = (sessionId: string) => {

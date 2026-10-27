@@ -11,7 +11,7 @@ export interface Tariffs {
 }
 
 export type RoomType = 'standard' | 'family' | 'vip';
-export type RoomStatus = 'free' | 'busy' | 'cleaning';
+export type RoomStatus = 'free' | 'partial' | 'busy';
 
 export interface Room {
   id: string;
@@ -22,6 +22,19 @@ export interface Room {
   currentSessionId: string | null;
 }
 
+export interface ClientVisit {
+  id: string;
+  date: string;
+  time: string;
+  roomName: string;
+  guestsCount: number;
+  durationHours: number;
+  totalAmount: number;
+  paymentStatus: 'full' | 'deposit' | 'debt';
+  paymentMethod: string;
+  notes?: string;
+}
+
 export interface Client {
   id: string;
   phone: string;
@@ -30,9 +43,13 @@ export interface Client {
   totalSpent: number;
   lastVisitDate: string;
   bonusBalance: number;
+  debtAmount?: number;
   status: string;
   isBlacklisted: boolean;
   blacklistReason: string | null;
+  visitsHistory?: ClientVisit[];
+  registeredDate?: string;
+  notes?: string;
 }
 
 export interface Product {
