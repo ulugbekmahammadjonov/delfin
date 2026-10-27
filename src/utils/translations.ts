@@ -170,8 +170,8 @@ export const translations: Record<LangType, Record<string, string>> = {
     addBlacklist: "Qora ro'yxatga kiritish",
     removeFromBlacklist: "Qora ro'yxatdan chiqarish",
     loyaltyRule: "Sodiqlik qoidasi",
-    loyaltyRuleDesc: "Har 10-tashrifda 1 soat bepul! Har bir to'lovdan 5% bonus yig'iladi.",
-    bonusBalance: "Bonus balansi",
+    loyaltyRuleDesc: "Mijoz 8 marta tashrif buyursa, 9-tashrif 100% bepul (BONUS seans) hisoblanadi!",
+    bonusBalance: "9-tashrif Bonusi (8+1 tizimi)",
     
     // Cashier
     cashierTitle: "Kassa Nazorati va Kunlik Xarajatlar",

@@ -42,7 +42,7 @@ export interface Client {
   visitsCount: number;
   totalSpent: number;
   lastVisitDate: string;
-  bonusBalance: number;
+  bonusBalance?: number;
   debtAmount?: number;
   status: string;
   isBlacklisted: boolean;
@@ -98,6 +98,7 @@ export interface Session {
   bookingTime?: string | null;
   completedAt?: string | null;
   isExclusive?: boolean;
+  isBonus?: boolean;
 }
 
 export interface Expense {
@@ -143,6 +144,7 @@ export interface AppContextType {
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
   sessions: Session[];
   addSession: (sessionData: Partial<Session> & { clientName: string; phone: string }) => Session;
+  updateSession: (sessionId: string, updates: Partial<Session>) => void;
   extendSessionTime: (sessionId: string, extraMinutes: number) => void;
   finishSession: (sessionId: string) => void;
   startBookingSession: (sessionId: string) => void;

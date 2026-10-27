@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Client, Session, PaymentStatus, PaymentMethod, SessionType } from '../../types';
 import { formatTime24 } from '../../utils/dateUtils';
+import EditBookingModal from './EditBookingModal';
 import {
   Timer,
   Phone,
@@ -20,6 +21,7 @@ import {
   Clock,
   Lock,
   X,
+  Pencil,
 } from 'lucide-react';
 
 export default function RegistrationView() {
@@ -35,9 +37,11 @@ export default function RegistrationView() {
     finishSession,
     startBookingSession,
     cancelBooking,
+    updateSession,
     findClientByPhone,
     setActiveReceiptSession,
     setActiveBarOrderSession,
+    addLog,
   } = useApp();
 
   const [phone, setPhone] = useState<string>('+998 ');
@@ -47,6 +51,7 @@ export default function RegistrationView() {
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState<boolean>(false);
   const [guestsCount, setGuestsCount] = useState<number>(4);
   const [isCapacityModalOpen, setIsCapacityModalOpen] = useState<boolean>(false);
+  const [editingBooking, setEditingBooking] = useState<Session | null>(null);
   const [visitType, setVisitType] = useState<SessionType>('instant');
   const [bookingDate, setBookingDate] = useState<string>('Bugun');
   const [bookingTime, setBookingTime] = useState<string>('14:30');
@@ -60,6 +65,8 @@ export default function RegistrationView() {
   const [depositAmount, setDepositAmount] = useState<string>('100000');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [notes, setNotes] = useState<string>('');
+  const [isBonusSession, setIsBonusSession] = useState<boolean>(false);
+  const [showBonusModal, setShowBonusModal] = useState<boolean>(false);
 
   const [activeTab, setActiveTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -127,19 +134,28 @@ export default function RegistrationView() {
           setMatchedClient(exact);
           setClientName(exact.name);
           setIsSuggestionsOpen(false);
+          if (exact.visitsCount % 9 === 8) {
+            setShowBonusModal(true);
+          }
         } else {
           setMatchedClient(null);
+          setIsBonusSession(false);
         }
       } else if (matches.length === 1 && digits.length >= 7) {
         setMatchedClient(matches[0]);
         setClientName(matches[0].name);
+        if (matches[0].visitsCount % 9 === 8) {
+          setShowBonusModal(true);
+        }
       } else {
         setMatchedClient(null);
+        setIsBonusSession(false);
       }
     } else {
       setPhoneSuggestions([]);
       setIsSuggestionsOpen(false);
       setMatchedClient(null);
+      setIsBonusSession(false);
     }
   };
 
@@ -163,6 +179,11 @@ export default function RegistrationView() {
     setClientName(client.name);
     setPhoneSuggestions([]);
     setIsSuggestionsOpen(false);
+    if (client.visitsCount % 9 === 8) {
+      setShowBonusModal(true);
+    } else {
+      setIsBonusSession(false);
+    }
   };
 
   const effectiveHours =
@@ -203,29 +224,44 @@ export default function RegistrationView() {
   const extraGuests = Math.max(0, billingGuests - tariffs.includedGuestsStandard);
   const extraGuestPrice = extraGuests * tariffs.extraPersonPerHour * Math.ceil(effectiveHours);
 
-  const calculatedTotal = Math.max(0, baseTariffPrice + extraGuestPrice - Number(discountAmount || 0));
-  const finalPrice = customPrice !== '' ? Number(customPrice) : calculatedTotal;
+  const isNinthBonusEligible = Boolean(matchedClient && matchedClient.visitsCount % 9 === 8);
+  const calculatedBase = baseTariffPrice + extraGuestPrice;
+  const calculatedTotal = isBonusSession
+    ? 0
+    : Math.max(0, calculatedBase - Number(discountAmount || 0));
+  const finalPrice = isBonusSession ? 0 : (customPrice !== '' ? Number(customPrice) : calculatedTotal);
 
   const executeAddSession = () => {
+    const noteParts = [
+      isBonusSession ? "[9-TASHRIF BONUSI - BEPUL SEANS]" : '',
+      isExclusiveActive ? "[TO'LIQ BAND (EKSKLYUZIV)]" : '',
+      notes.trim(),
+    ].filter(Boolean);
+
     addSession({
       clientName: clientName.trim(),
       phone: phone.trim(),
       guestsCount: Number(guestsCount),
       isExclusive: isExclusiveActive,
+      isBonus: isBonusSession,
       roomId: selectedRoomId,
       roomName: selectedRoom ? selectedRoom.name : 'Sauna',
       type: visitType,
       durationHours: effectiveHours,
-      baseAmount: baseTariffPrice,
-      extraAmount: extraGuestPrice,
+      baseAmount: isBonusSession ? 0 : baseTariffPrice,
+      extraAmount: isBonusSession ? 0 : extraGuestPrice,
       totalAmount: finalPrice,
-      paymentStatus: paymentStatus,
+      paymentStatus: isBonusSession ? 'full' : paymentStatus,
       depositAmount: paymentStatus === 'deposit' ? Number(depositAmount) : 0,
-      paymentMethod: paymentMethod,
-      notes: (isExclusiveActive ? "[TO'LIQ BAND (EKSKLYUZIV)] " : '') + notes.trim(),
+      paymentMethod: isBonusSession ? 'cash' : paymentMethod,
+      notes: noteParts.join(' '),
       bookingDate: visitType === 'booking' ? bookingDate : null,
       bookingTime: visitType === 'booking' ? bookingTime : null,
     });
+
+    if (isBonusSession) {
+      addLog(`🎉 DIQQAT: ${clientName.trim()} uchun 9-tashrif BONUS seansi rasmiylashtirildi (bepul).`);
+    }
 
     setPhone('+998 ');
     setClientName('');
@@ -237,6 +273,8 @@ export default function RegistrationView() {
     setDiscountAmount(0);
     setIsCapacityModalOpen(false);
     setIsExclusive(false);
+    setIsBonusSession(false);
+    setShowBonusModal(false);
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
@@ -430,6 +468,12 @@ export default function RegistrationView() {
                   <span>Eksklyuziv</span>
                 </span>
               )}
+              {session.isBonus && (
+                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-900 flex items-center gap-1 shadow-xs animate-pulse">
+                  <span>🎁</span>
+                  <span>9-tashrif Bonusi</span>
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 flex-wrap">
@@ -570,12 +614,23 @@ export default function RegistrationView() {
             {isBooking && (
               <>
                 <button
+                  type="button"
+                  onClick={() => setEditingBooking(session)}
+                  className="px-2 py-1 rounded-lg text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 dark:hover:bg-sky-900/60 border border-sky-200 dark:border-sky-800 transition-colors flex items-center gap-1"
+                  title="Bron ma'lumotlarini tahrirlash"
+                >
+                  <Pencil className="w-2.5 h-2.5" />
+                  <span>Tahrirlash</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => cancelBooking(session.id)}
                   className="px-2 py-1 rounded-lg text-[10px] font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
                 >
                   {t.cancelBooking}
                 </button>
                 <button
+                  type="button"
                   onClick={() => startBookingSession(session.id)}
                   className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-sky-600 hover:bg-sky-500 text-white transition-colors shadow-xs flex items-center gap-1"
                 >
@@ -744,10 +799,21 @@ export default function RegistrationView() {
                             {matchedClient.status}
                           </span>
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
-                          <span>{matchedClient.visitsCount}-tashrif</span>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">
+                            Tashriflar: {matchedClient.visitsCount} ta
+                          </span>
                           <span>•</span>
-                          <span>Bonus: {matchedClient.bonusBalance?.toLocaleString()} so'm</span>
+                          {matchedClient.visitsCount % 9 === 8 ? (
+                            <span className="font-black text-amber-600 dark:text-amber-400 flex items-center gap-1 bg-amber-100 dark:bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-300 dark:border-amber-700 animate-pulse">
+                              <span>🎁</span>
+                              <span>Navbatdagi 9-tashrif BONUS!</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-600 dark:text-slate-300">
+                              Loyallik: {matchedClient.visitsCount % 9}/8 (9-bonusga yana {8 - (matchedClient.visitsCount % 9)} ta)
+                            </span>
+                          )}
                           {(matchedClient.debtAmount || 0) > 0 && (
                             <>
                               <span>•</span>
@@ -757,6 +823,40 @@ export default function RegistrationView() {
                         </div>
                       </div>
                       <span className="text-xl">🌟</span>
+                    </div>
+                  )}
+
+                  {/* 9th Visit Bonus Banner and Toggle */}
+                  {matchedClient.visitsCount % 9 === 8 && !matchedClient.isBlacklisted && (
+                    <div className="mt-2 p-3 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/20 border-2 border-amber-400 dark:border-amber-500 space-y-2 shadow-xs animate-in zoom-in-95 duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl animate-bounce-subtle">🎁</span>
+                          <div>
+                            <h4 className="text-xs font-black text-amber-950 dark:text-amber-200 flex items-center gap-1.5">
+                              <span>9-TASHRIF BONUSI MAVJUD!</span>
+                              <span className="text-[10px] bg-amber-500 text-white font-extrabold px-1.5 py-0.2 rounded uppercase tracking-wider">
+                                Bepul Seans
+                              </span>
+                            </h4>
+                            <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                              Mijoz 8 marta tashrif buyurgan. Ushbu 9-tashrif 100% bepul taqdim etiladi.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <label className="flex items-center gap-2 pt-2 border-t border-amber-300/50 dark:border-amber-700/50 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isBonusSession}
+                          onChange={(e) => setIsBonusSession(e.target.checked)}
+                          className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 border-amber-400 cursor-pointer"
+                        />
+                        <span className="text-xs font-extrabold text-amber-950 dark:text-amber-100">
+                          9-tashrif bonusini faollashtirish (Seans bepul — 100% chegirma)
+                        </span>
+                      </label>
                     </div>
                   )}
                 </div>
@@ -1035,6 +1135,18 @@ export default function RegistrationView() {
                 </span>
               </div>
 
+              {isBonusSession && (
+                <div className="flex justify-between items-center text-xs text-amber-950 dark:text-amber-200 font-extrabold bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-950/70 dark:to-yellow-950/50 p-2.5 rounded-xl border border-amber-300 dark:border-amber-700 animate-pulse">
+                  <span className="flex items-center gap-1.5">
+                    <span>🎁</span>
+                    <span>9-tashrif Bonusi (100% BEPUL):</span>
+                  </span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                    -{(baseTariffPrice + extraGuestPrice).toLocaleString()} UZS
+                  </span>
+                </div>
+              )}
+
               {visitType === 'booking' && isExclusive && selectedRoom && (
                 <div className="flex justify-between items-center text-xs text-amber-700 dark:text-amber-300 font-bold bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-300/60 dark:border-amber-700/60">
                   <span className="flex items-center gap-1.5">
@@ -1120,9 +1232,18 @@ export default function RegistrationView() {
                 <span className="font-extrabold text-xs text-slate-800 dark:text-slate-100">
                   {t.finalTotal}:
                 </span>
-                <span className="font-mono font-extrabold text-base text-cyan-600 dark:text-cyan-400">
-                  {finalPrice.toLocaleString()} UZS
-                </span>
+                {isBonusSession ? (
+                  <span className="font-mono font-black text-base text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                    <span>0 UZS</span>
+                    <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-md font-black uppercase">
+                      BEPUL
+                    </span>
+                  </span>
+                ) : (
+                  <span className="font-mono font-extrabold text-base text-cyan-600 dark:text-cyan-400">
+                    {finalPrice.toLocaleString()} UZS
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1450,6 +1571,82 @@ export default function RegistrationView() {
             </div>
           </div>
         </div>
+      )}
+      {/* 9th Visit Bonus Alert Modal */}
+      {showBonusModal && matchedClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full border-2 border-amber-400 dark:border-amber-500 shadow-2xl space-y-4 animate-scaleUp">
+            <div className="flex items-center gap-3.5">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/30 flex-shrink-0 animate-bounce">
+                🎁
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
+                  Sodiqlik Bonusi
+                </span>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">
+                  9-Tashrif — BONUS SEANSI!
+                </h3>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 dark:text-slate-400">Mijoz:</span>
+                <span className="font-extrabold text-slate-900 dark:text-white">{matchedClient.name}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 dark:text-slate-400">Telefon:</span>
+                <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{matchedClient.phone}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 dark:text-slate-400">Bajarilgan tashriflar:</span>
+                <span className="font-black text-amber-600 dark:text-amber-400">8 / 8 ta tashrif (To'liq)</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-amber-200 dark:border-amber-800/60 font-bold">
+                <span className="text-slate-800 dark:text-slate-200">Navbatdagi tashrif:</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">9-tashrif (100% BEPUL)</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Mijoz belgilangan <strong>8 ta tashrifni</strong> to'liq amalga oshirgan. Delfin Saunasi qoidasiga ko'ra ushbu <strong>9-tashrif bepul</strong> taqdim etiladi. Seansni bonus sifatida kiritasizmi?
+            </p>
+
+            <div className="flex flex-col gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBonusSession(true);
+                  setShowBonusModal(false);
+                }}
+                className="w-full py-3 px-4 rounded-xl text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-400 shadow-md shadow-amber-500/25 transition-all flex items-center justify-center gap-2"
+              >
+                <span>🎁 Ha, 9-tashrif bonusini qo'llash (100% Bepul)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBonusSession(false);
+                  setShowBonusModal(false);
+                }}
+                className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Oddiy to'lov sifatida davom etish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Booking Modal */}
+      {editingBooking && (
+        <EditBookingModal
+          booking={editingBooking}
+          rooms={rooms}
+          onClose={() => setEditingBooking(null)}
+          onSave={updateSession}
+        />
       )}
     </div>
   );
