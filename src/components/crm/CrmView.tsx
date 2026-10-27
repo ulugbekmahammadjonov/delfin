@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Client, ClientVisit } from '../../types';
+import { formatTime24 } from '../../utils/dateUtils';
 import {
   Users,
   Award,
@@ -62,7 +63,7 @@ export default function CrmView() {
       if (activeTab === 'debtors') {
         return (b.debtAmount || 0) - (a.debtAmount || 0);
       }
-      return b.visitsCount - a.visitsCount;
+      return 0;
     });
 
   const handleConfirmBlacklist = () => {
@@ -573,7 +574,7 @@ export default function CrmView() {
                       <thead>
                         <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700/80 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">
                           <th className="py-2.5 px-3">Sana & Vaqt</th>
-                          <th className="py-2.5 px-3">Zal</th>
+                          <th className="py-2.5 px-3">Sauna</th>
                           <th className="py-2.5 px-3 text-center">Mehmon</th>
                           <th className="py-2.5 px-3">Davomiyligi</th>
                           <th className="py-2.5 px-3">Summa</th>
@@ -594,7 +595,7 @@ export default function CrmView() {
                             <tr key={visit.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                               <td className="py-2.5 px-3 font-mono font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                                 <div>{visit.date}</div>
-                                <div className="text-[10px] text-slate-400 font-normal">{visit.time}</div>
+                                <div className="text-[10px] text-slate-400 font-normal">{formatTime24(visit.time)}</div>
                               </td>
                               <td className="py-2.5 px-3 whitespace-nowrap">{visit.roomName}</td>
                               <td className="py-2.5 px-3 text-center font-bold text-sky-600">{visit.guestsCount} kishi</td>

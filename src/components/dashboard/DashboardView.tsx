@@ -28,25 +28,225 @@ import {
   Legend,
   CartesianGrid,
 } from 'recharts';
-import {
-  visitsTimelineData,
-  revenueBreakdownData,
-  tariffsDistributionData,
-  peakHoursHeatmap,
-  paymentMethodsSplit,
-} from '../../data/mockData';
+import { peakHoursHeatmap } from '../../data/mockData';
+
+type PeriodType = 'bugun' | 'hafta' | 'oy' | 'yil';
 
 export default function DashboardView() {
   const { t, sessions, clients, setCurrentTab } = useApp();
-  const [period, setPeriod] = useState<string>('bugun');
+  const [period, setPeriod] = useState<PeriodType>('bugun');
 
   const activeSessions = sessions.filter((s) => s.status === 'active' || s.status === 'overtime');
   const insideGuests = activeSessions.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
   const bookingsCount = sessions.filter((s) => s.status === 'booking').length;
 
-  const totalTodayRevenue = sessions
+  // Live session additions for today
+  const liveSessionRevenue = sessions
     .filter((s) => s.status !== 'booking')
-    .reduce((acc, s) => acc + (s.totalAmount || 0), 3850000);
+    .reduce((acc, s) => acc + (s.totalAmount || 0), 0);
+  const liveGuestsCount = sessions
+    .filter((s) => s.status !== 'booking')
+    .reduce((acc, s) => acc + (s.guestsCount || 0), 0);
+
+  // Dynamic period dataset
+  const periodDataMap: Record<
+    PeriodType,
+    {
+      label: string;
+      revenue: number;
+      growth: string;
+      comparisonText: string;
+      guestsCount: number;
+      groupsCount: number;
+      visitsChartType: string;
+      visitsTimeline: Array<{ time: string; joriy: number; oldingi: number }>;
+      currentLegend: string;
+      previousLegend: string;
+      revenueTimeline: Array<{ day: string; sauna: number; bar: number }>;
+      revenueTimelineType: string;
+      tariffsDistribution: Array<{ name: string; value: number; color: string }>;
+      paymentMethods: Record<string, { label: string; percent: number; amount: number; color: string }>;
+      totalTurnover: number;
+    }
+  > = {
+    bugun: {
+      label: 'Bugun',
+      revenue: 3850000 + liveSessionRevenue,
+      growth: '+14.8%',
+      comparisonText: "kechagiga nisbatan",
+      guestsCount: 34 + liveGuestsCount,
+      groupsCount: 9 + sessions.filter((s) => s.status === 'active' || s.status === 'completed').length,
+      visitsChartType: 'Soatbay (09:00 - 23:00)',
+      currentLegend: 'Bugungi oqim',
+      previousLegend: 'Kechagi oqim',
+      visitsTimeline: [
+        { time: '09:00', joriy: 4, oldingi: 2 },
+        { time: '11:00', joriy: 9, oldingi: 6 },
+        { time: '13:00', joriy: 14, oldingi: 10 },
+        { time: '15:00', joriy: 18, oldingi: 16 },
+        { time: '17:00', joriy: 26, oldingi: 22 },
+        { time: '19:00', joriy: 34, oldingi: 28 },
+        { time: '21:00', joriy: 42, oldingi: 35 },
+        { time: '23:00', joriy: 28, oldingi: 24 },
+      ],
+      revenueTimelineType: "Soat oralig'i kesimida",
+      revenueTimeline: [
+        { day: '09-12', sauna: 780000, bar: 160000 },
+        { day: '12-15', sauna: 950000, bar: 240000 },
+        { day: '15-18', sauna: 1150000, bar: 310000 },
+        { day: '18-21', sauna: 1450000, bar: 420000 },
+        { day: '21-00', sauna: 1250000, bar: 290000 },
+      ],
+      tariffsDistribution: [
+        { name: '1 soat', value: 22, color: '#0ea5e9' },
+        { name: '1.5 soat', value: 35, color: '#14b8a6' },
+        { name: '2 soat', value: 30, color: '#6366f1' },
+        { name: 'VIP Paket', value: 13, color: '#f59e0b' },
+      ],
+      paymentMethods: {
+        cash: { label: 'Naqd pul', percent: 45, amount: Math.round((3850000 + liveSessionRevenue) * 0.45), color: 'bg-emerald-500' },
+        card: { label: 'Plastik terminal (Uzcard/Humo)', percent: 35, amount: Math.round((3850000 + liveSessionRevenue) * 0.35), color: 'bg-sky-500' },
+        qr:   { label: 'P2P/QR (Click, Payme)', percent: 16, amount: Math.round((3850000 + liveSessionRevenue) * 0.16), color: 'bg-indigo-500' },
+        debt: { label: 'Qarz / Nasiya', percent: 4, amount: Math.round((3850000 + liveSessionRevenue) * 0.04), color: 'bg-amber-500' },
+      },
+      totalTurnover: 3850000 + liveSessionRevenue,
+    },
+    hafta: {
+      label: 'Bu hafta',
+      revenue: 41260000,
+      growth: '+18.4%',
+      comparisonText: "o'tgan haftaga nisbatan",
+      guestsCount: 256,
+      groupsCount: 68,
+      visitsChartType: 'Kunbay (Dush - Yak)',
+      currentLegend: 'Ushbu hafta',
+      previousLegend: "O'tgan hafta",
+      visitsTimeline: [
+        { time: 'Dush', joriy: 28, oldingi: 22 },
+        { time: 'Sesh', joriy: 32, oldingi: 26 },
+        { time: 'Chor', joriy: 30, oldingi: 25 },
+        { time: 'Pay',  joriy: 42, oldingi: 35 },
+        { time: 'Juma', joriy: 58, oldingi: 48 },
+        { time: 'Shan', joriy: 66, oldingi: 55 },
+        { time: 'Yak',  joriy: 54, oldingi: 46 },
+      ],
+      revenueTimelineType: 'Kunlik tushum',
+      revenueTimeline: [
+        { day: 'Dush', sauna: 2800000, bar: 650000 },
+        { day: 'Sesh', sauna: 3100000, bar: 720000 },
+        { day: 'Chor', sauna: 2900000, bar: 590000 },
+        { day: 'Pay',  sauna: 4200000, bar: 980000 },
+        { day: 'Juma', sauna: 5800000, bar: 1450000 },
+        { day: 'Shan', sauna: 7400000, bar: 1950000 },
+        { day: 'Yak',  sauna: 6900000, bar: 1800000 },
+      ],
+      tariffsDistribution: [
+        { name: '1 soat', value: 18, color: '#0ea5e9' },
+        { name: '1.5 soat', value: 32, color: '#14b8a6' },
+        { name: '2 soat', value: 36, color: '#6366f1' },
+        { name: 'VIP Paket', value: 14, color: '#f59e0b' },
+      ],
+      paymentMethods: {
+        cash: { label: 'Naqd pul', percent: 44, amount: 18150000, color: 'bg-emerald-500' },
+        card: { label: 'Plastik terminal (Uzcard/Humo)', percent: 38, amount: 15680000, color: 'bg-sky-500' },
+        qr:   { label: 'P2P/QR (Click, Payme)', percent: 15, amount: 6190000, color: 'bg-indigo-500' },
+        debt: { label: 'Qarz / Nasiya', percent: 3, amount: 1240000, color: 'bg-amber-500' },
+      },
+      totalTurnover: 41260000,
+    },
+    oy: {
+      label: 'Bu oy',
+      revenue: 168450000,
+      growth: '+24.6%',
+      comparisonText: "o'tgan oyga nisbatan",
+      guestsCount: 1140,
+      groupsCount: 285,
+      visitsChartType: 'Hafta kesimida (1 - 4 hafta)',
+      currentLegend: 'Ushbu oy',
+      previousLegend: "O'tgan oy",
+      visitsTimeline: [
+        { time: '1-hafta', joriy: 245, oldingi: 210 },
+        { time: '2-hafta', joriy: 270, oldingi: 225 },
+        { time: '3-hafta', joriy: 315, oldingi: 250 },
+        { time: '4-hafta', joriy: 310, oldingi: 260 },
+      ],
+      revenueTimelineType: 'Haftalik tushum',
+      revenueTimeline: [
+        { day: '1-hafta', sauna: 28500000, bar: 7200000 },
+        { day: '2-hafta', sauna: 31200000, bar: 8100000 },
+        { day: '3-hafta', sauna: 39500000, bar: 10400000 },
+        { day: '4-hafta', sauna: 35500000, bar: 9200000 },
+      ],
+      tariffsDistribution: [
+        { name: '1 soat', value: 15, color: '#0ea5e9' },
+        { name: '1.5 soat', value: 30, color: '#14b8a6' },
+        { name: '2 soat', value: 38, color: '#6366f1' },
+        { name: 'VIP Paket', value: 17, color: '#f59e0b' },
+      ],
+      paymentMethods: {
+        cash: { label: 'Naqd pul', percent: 42, amount: 70750000, color: 'bg-emerald-500' },
+        card: { label: 'Plastik terminal (Uzcard/Humo)', percent: 40, amount: 67380000, color: 'bg-sky-500' },
+        qr:   { label: 'P2P/QR (Click, Payme)', percent: 16, amount: 26950000, color: 'bg-indigo-500' },
+        debt: { label: 'Qarz / Nasiya', percent: 2, amount: 3370000, color: 'bg-amber-500' },
+      },
+      totalTurnover: 168450000,
+    },
+    yil: {
+      label: 'Bu yil',
+      revenue: 1894000000,
+      growth: '+38.2%',
+      comparisonText: "o'tgan yilga nisbatan",
+      guestsCount: 13420,
+      groupsCount: 3410,
+      visitsChartType: '12 oy kesimida (Yanvar - Dekabr)',
+      currentLegend: '2026-yil',
+      previousLegend: '2025-yil',
+      visitsTimeline: [
+        { time: 'Yan', joriy: 980, oldingi: 720 },
+        { time: 'Fev', joriy: 1050, oldingi: 790 },
+        { time: 'Mar', joriy: 1120, oldingi: 840 },
+        { time: 'Apr', joriy: 990, oldingi: 780 },
+        { time: 'May', joriy: 890, oldingi: 710 },
+        { time: 'Iyun', joriy: 820, oldingi: 660 },
+        { time: 'Iyul', joriy: 790, oldingi: 640 },
+        { time: 'Avg', joriy: 910, oldingi: 720 },
+        { time: 'Sen', joriy: 1180, oldingi: 890 },
+        { time: 'Okt', joriy: 1350, oldingi: 980 },
+        { time: 'Noy', joriy: 1520, oldingi: 1120 },
+        { time: 'Dek', joriy: 1820, oldingi: 1350 },
+      ],
+      revenueTimelineType: 'Oylik tushum',
+      revenueTimeline: [
+        { day: 'Yan', sauna: 115000000, bar: 28000000 },
+        { day: 'Fev', sauna: 122000000, bar: 31000000 },
+        { day: 'Mar', sauna: 130000000, bar: 34000000 },
+        { day: 'Apr', sauna: 112000000, bar: 29000000 },
+        { day: 'May', sauna: 98000000, bar: 24000000 },
+        { day: 'Iyun', sauna: 89000000, bar: 22000000 },
+        { day: 'Iyul', sauna: 85000000, bar: 21000000 },
+        { day: 'Avg', sauna: 99000000, bar: 26000000 },
+        { day: 'Sen', sauna: 135000000, bar: 36000000 },
+        { day: 'Okt', sauna: 158000000, bar: 42000000 },
+        { day: 'Noy', sauna: 175000000, bar: 48000000 },
+        { day: 'Dek', sauna: 210000000, bar: 58000000 },
+      ],
+      tariffsDistribution: [
+        { name: '1 soat', value: 14, color: '#0ea5e9' },
+        { name: '1.5 soat', value: 28, color: '#14b8a6' },
+        { name: '2 soat', value: 40, color: '#6366f1' },
+        { name: 'VIP Paket', value: 18, color: '#f59e0b' },
+      ],
+      paymentMethods: {
+        cash: { label: 'Naqd pul', percent: 40, amount: 757600000, color: 'bg-emerald-500' },
+        card: { label: 'Plastik terminal (Uzcard/Humo)', percent: 42, amount: 795480000, color: 'bg-sky-500' },
+        qr:   { label: 'P2P/QR (Click, Payme)', percent: 16, amount: 303040000, color: 'bg-indigo-500' },
+        debt: { label: 'Qarz / Nasiya', percent: 2, amount: 37880000, color: 'bg-amber-500' },
+      },
+      totalTurnover: 1894000000,
+    },
+  };
+
+  const currentData = periodDataMap[period];
 
   const topVipClients = [...clients]
     .filter((c) => !c.isBlacklisted)
@@ -55,36 +255,38 @@ export default function DashboardView() {
 
   return (
     <div className="space-y-6">
+      {/* Top Banner with Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               {t.dashboard}
             </h1>
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 border border-sky-300 dark:border-sky-800">
+            <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 border border-sky-300 dark:border-sky-800">
               <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-ping"></span>
-              Jonli Analitika
+              <span>Jonli Analitika: <strong>{currentData.label}</strong></span>
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            "Delfin" Saunasi faoliyatining real-vaqtdagi ko'rsatkichlari va moliyaviy tahlili
+            "Delfin" Saunasi faoliyatining tanlangan davr bo'yicha real-vaqtdagi ko'rsatkichlari
           </p>
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700/80 self-start sm:self-auto text-xs font-semibold">
+        {/* Time Period Filter Buttons */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 self-start sm:self-auto text-xs font-semibold shadow-inner">
           {[
-            { id: 'bugun', label: t.periodToday },
-            { id: 'hafta', label: t.periodWeek },
-            { id: 'oy', label: t.periodMonth },
-            { id: 'yil', label: t.periodYear },
+            { id: 'bugun' as const, label: t.periodToday },
+            { id: 'hafta' as const, label: t.periodWeek },
+            { id: 'oy' as const, label: t.periodMonth },
+            { id: 'yil' as const, label: t.periodYear },
           ].map((item) => (
             <button
               key={item.id}
               onClick={() => setPeriod(item.id)}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl transition-all font-bold ${
                 period === item.id
-                  ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-300 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30 scale-105'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
               }`}
             >
               {item.label}
@@ -93,11 +295,13 @@ export default function DashboardView() {
         </div>
       </div>
 
+      {/* 4 Main KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* KPI 1: Revenue */}
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-sky-300 dark:hover:border-sky-700 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              {t.kpiRevenue}
+              {t.kpiRevenue} ({currentData.label})
             </span>
             <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-950/80 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
               <Banknote className="w-5 h-5" />
@@ -105,21 +309,22 @@ export default function DashboardView() {
           </div>
           <div className="mt-2">
             <div className="text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
-              {totalTodayRevenue.toLocaleString()}{' '}
+              {currentData.revenue.toLocaleString()}{' '}
               <span className="text-xs font-medium text-slate-400">UZS</span>
             </div>
             <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>+14.8%</span>
-              <span className="text-slate-400 font-normal">{t.vsYesterday}</span>
+              <span>{currentData.growth}</span>
+              <span className="text-slate-400 font-normal">{currentData.comparisonText}</span>
             </div>
           </div>
         </div>
 
+        {/* KPI 2: Visits */}
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-sky-300 dark:hover:border-sky-700 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              {t.kpiVisits}
+              {t.kpiVisits} ({currentData.label})
             </span>
             <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/80 text-sky-600 dark:text-sky-400 flex items-center justify-center">
               <Users className="w-5 h-5" />
@@ -127,21 +332,22 @@ export default function DashboardView() {
           </div>
           <div className="mt-2">
             <div className="text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
-              34 <span className="text-xs font-medium text-slate-400">{t.guestsCount}</span>
+              {currentData.guestsCount.toLocaleString()} <span className="text-xs font-medium text-slate-400">{t.guestsCount}</span>
             </div>
             <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1">
-              <span>9 {t.groupsCount} qabul qilindi</span>
+              <span>{currentData.groupsCount.toLocaleString()} {t.groupsCount} qabul qilindi</span>
             </div>
           </div>
         </div>
 
+        {/* KPI 3: Inside right now */}
         <div
-          onClick={() => setCurrentTab('registration')}
+          onClick={() => setCurrentTab('rooms')}
           className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-emerald-400 dark:hover:border-emerald-600 cursor-pointer transition-all group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              {t.kpiInside}
+              {t.kpiInside} (Hozir saunada)
             </span>
             <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Timer className="w-5 h-5" />
@@ -159,6 +365,7 @@ export default function DashboardView() {
           </div>
         </div>
 
+        {/* KPI 4: Bookings */}
         <div
           onClick={() => setCurrentTab('registration')}
           className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-indigo-400 dark:hover:border-indigo-600 cursor-pointer transition-all group"
@@ -177,13 +384,15 @@ export default function DashboardView() {
               <span className="text-xs font-medium text-slate-400">ta bron</span>
             </div>
             <div className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 mt-1">
-              <span>Kelish vaqtlari: 13:00, 17:00</span>
+              <span>Oldindan qabul qilingan zakladlar</span>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Main Charts: Visits & Revenue */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Visits Chart */}
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -191,16 +400,18 @@ export default function DashboardView() {
                 <BarChart3 className="w-4 h-4 text-sky-500" />
                 {t.chartVisitsTitle}
               </h3>
-              <p className="text-xs text-slate-500">{t.chartVisitsSubtitle}</p>
+              <p className="text-xs text-slate-500">
+                {currentData.label} bo'yicha mijozlar oqimi dinamikasi
+              </p>
             </div>
-            <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-              Soatbay
+            <span className="text-[11px] px-2.5 py-1 rounded-full font-bold bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+              {currentData.visitsChartType}
             </span>
           </div>
 
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={visitsTimelineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={currentData.visitsTimeline} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
                 <XAxis dataKey="time" stroke="#94a3b8" fontSize={11} />
                 <YAxis stroke="#94a3b8" fontSize={11} />
@@ -214,13 +425,14 @@ export default function DashboardView() {
                   }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                <Bar dataKey="bugun" name="Bugungi oqim" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="kecha" name="Kechagi oqim" fill="#64748b" radius={[4, 4, 0, 0]} opacity={0.5} />
+                <Bar dataKey="joriy" name={currentData.currentLegend} fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="oldingi" name={currentData.previousLegend} fill="#64748b" radius={[4, 4, 0, 0]} opacity={0.5} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
+        {/* Revenue Breakdown Chart */}
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -228,16 +440,18 @@ export default function DashboardView() {
                 <Banknote className="w-4 h-4 text-teal-500" />
                 {t.chartRevenueTitle}
               </h3>
-              <p className="text-xs text-slate-500">{t.chartRevenueSubtitle}</p>
+              <p className="text-xs text-slate-500">
+                Saunalar va mini-bar tushumlari nisbati
+              </p>
             </div>
-            <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-              Haftalik o'sish
+            <span className="text-[11px] px-2.5 py-1 rounded-full font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+              {currentData.revenueTimelineType}
             </span>
           </div>
 
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueBreakdownData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <AreaChart data={currentData.revenueTimeline} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="saunaColor" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#0284c7" stopOpacity={0.6} />
@@ -253,7 +467,13 @@ export default function DashboardView() {
                 <YAxis
                   stroke="#94a3b8"
                   fontSize={10}
-                  tickFormatter={(val) => `${(val / 1000000).toFixed(1)}M`}
+                  tickFormatter={(val) =>
+                    val >= 1000000000
+                      ? `${(val / 1000000000).toFixed(1)}B`
+                      : val >= 1000000
+                      ? `${(val / 1000000).toFixed(1)}M`
+                      : `${(val / 1000).toFixed(0)}k`
+                  }
                 />
                 <Tooltip
                   contentStyle={{
@@ -290,7 +510,9 @@ export default function DashboardView() {
         </div>
       </div>
 
+      {/* Leaderboard & Tariffs Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Top VIP Clients Leaderboard */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -370,20 +592,23 @@ export default function DashboardView() {
           </div>
         </div>
 
+        {/* Tariffs Distribution Pie Chart */}
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="font-bold text-sm md:text-base text-slate-900 dark:text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-500" />
               {t.chartTariffsTitle}
             </h3>
-            <p className="text-xs text-slate-500">Mijozlar eng ko'p tanlagan paketlar ulushi</p>
+            <p className="text-xs text-slate-500">
+              {currentData.label} bo'yicha eng ko'p tanlangan paketlar ulushi
+            </p>
           </div>
 
           <div className="h-52 w-full my-auto">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={tariffsDistributionData}
+                  data={currentData.tariffsDistribution}
                   cx="50%"
                   cy="50%"
                   innerRadius={50}
@@ -391,7 +616,7 @@ export default function DashboardView() {
                   paddingAngle={4}
                   dataKey="value"
                 >
-                  {tariffsDistributionData.map((entry, index) => (
+                  {currentData.tariffsDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -410,7 +635,7 @@ export default function DashboardView() {
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100 dark:border-slate-800">
-            {tariffsDistributionData.map((item, idx) => (
+            {currentData.tariffsDistribution.map((item, idx) => (
               <div key={idx} className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }}></span>
                 <span className="text-slate-600 dark:text-slate-400 font-medium">{item.name}:</span>
@@ -421,7 +646,9 @@ export default function DashboardView() {
         </div>
       </div>
 
+      {/* Heatmap & Payment Methods Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Peak Hours Heatmap */}
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -488,17 +715,20 @@ export default function DashboardView() {
           </div>
         </div>
 
+        {/* Payment Methods Split */}
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="font-bold text-sm md:text-base text-slate-900 dark:text-white flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-sky-500" />
               {t.chartPaymentMethodsTitle}
             </h3>
-            <p className="text-xs text-slate-500">Kassaga tushgan pullarning to'lov kanallari bo'yicha taqsimoti</p>
+            <p className="text-xs text-slate-500">
+              {currentData.label} bo'yicha to'lov kanallari ulushi va summasi
+            </p>
           </div>
 
           <div className="space-y-4 my-auto py-2">
-            {Object.entries(paymentMethodsSplit).map(([key, data]) => (
+            {Object.entries(currentData.paymentMethods).map(([key, data]) => (
               <div key={key} className="space-y-1.5">
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-semibold text-slate-700 dark:text-slate-300">
@@ -524,9 +754,9 @@ export default function DashboardView() {
           </div>
 
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
-            <span>Jami hisoblangan kassa aylanmasi:</span>
+            <span>Jami hisoblangan aylanma ({currentData.label}):</span>
             <span className="font-mono font-bold text-slate-900 dark:text-white text-sm">
-              8,470,000 UZS
+              {currentData.totalTurnover.toLocaleString()} UZS
             </span>
           </div>
         </div>

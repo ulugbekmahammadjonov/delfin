@@ -7,7 +7,7 @@ export const translations: Record<LangType, Record<string, string>> = {
     appSubtitle: "CRM & Boshqaruv Tizimi",
     dashboard: "Boshqaruv paneli",
     registration: "Qabul va Seanslar",
-    rooms: "Xonalar holati",
+    rooms: "Saunalar",
     minibar: "Mini-Bar va Ombor",
     crm: "Mijozlar bazasi (CRM)",
     cashier: "Kassa va Xarajatlar",
@@ -23,7 +23,7 @@ export const translations: Record<LangType, Record<string, string>> = {
     darkMode: "Tungi rejim",
     shiftOpen: "Smena ochiq",
     closeShiftBtn: "Smenani yopish",
-    newRegistrationBtn: "+ Tezkor qabul (15 soniya)",
+    newRegistrationBtn: "+ Tezkor qabul",
     
     // Dashboard
     kpiRevenue: "Bugungi tushum",
@@ -72,7 +72,7 @@ export const translations: Record<LangType, Record<string, string>> = {
     
     // Registration & Sessions
     regTitle: "Tezkor ro'yxatga olish / Bron qilish",
-    regSubtitle: "Yangi mijozni 15 soniyada kiritish logikasi",
+    regSubtitle: "Mijozlarni ro'yxatga olish va qabul boshqaruvi",
     searchClientPhone: "Telefon raqami (+998)",
     enterPhoneNotice: "Raqam kiritilganda bazadan avtomatik qidiriladi",
     clientFound: "Bazada topildi",
@@ -81,7 +81,7 @@ export const translations: Record<LangType, Record<string, string>> = {
     blacklistReason: "Sababi",
     clientNameLabel: "Mijozning ismi",
     guestsCountLabel: "Mehmonlar soni",
-    maxGuestsWarn: "Diqqat: Xonaga 7 kishidan ortiq kiritish me'yordan ortiq! Rahbar tasdig'i talab qilinadi.",
+    maxGuestsWarn: "Diqqat: Saunaga 7 kishidan ortiq kiritish me'yordan ortiq! Rahbar tasdig'i talab qilinadi.",
     acceptException: "Istisno sifatida qabul qilish",
     
     visitType: "Tashrif turi",
@@ -90,7 +90,7 @@ export const translations: Record<LangType, Record<string, string>> = {
     bookingDate: "Kelish sanasi",
     bookingTime: "Kelish soati",
     
-    roomLabel: "Xona / Kabina tanlash",
+    roomLabel: "Sauna tanlash",
     durationLabel: "Davomiyligi (Tezkor tanlov)",
     customDuration: "Boshqa vaqt",
     hours: "soat",
@@ -144,8 +144,8 @@ export const translations: Record<LangType, Record<string, string>> = {
     cancelBooking: "Bronni bekor qilish",
     
     // Rooms
-    roomsTitle: "Xonalar va Zallar Holati",
-    roomsSubtitle: "Jonli zallar bandligi, bo'sh o'rinlar va mijozlar soni nazorati",
+    roomsTitle: "Saunalar Holati",
+    roomsSubtitle: "Jonli saunalar bandligi, bo'sh o'rinlar va mijozlar soni nazorati",
     roomStatusFree: "Bo'sh (Tayyor)",
     roomStatusPartial: "Joy bor (Qisman band)",
     roomStatusBusy: "To'liq band",
@@ -218,7 +218,7 @@ export const translations: Record<LangType, Record<string, string>> = {
     darkMode: "Тунги режим",
     shiftOpen: "Смена очиқ",
     closeShiftBtn: "Сменани ёпиш",
-    newRegistrationBtn: "+ Тезкор қабул (15 сония)",
+    newRegistrationBtn: "+ Тезкор қабул",
     
     kpiRevenue: "Бугунги тушум",
     kpiVisits: "Бугунги ташрифлар",
@@ -265,7 +265,7 @@ export const translations: Record<LangType, Record<string, string>> = {
     debt: "Қарз / Насия",
     
     regTitle: "Тезкор рўйхатга олиш / Брон қилиш",
-    regSubtitle: "Янги мижозни 15 сонияда киритиш логикаси",
+    regSubtitle: "Мижозларни рўйхатга олиш ва қабул бошқаруви",
     searchClientPhone: "Телефон рақами (+998)",
     enterPhoneNotice: "Рақам киритилганда базадан автоматик қидирилади",
     clientFound: "Базада топилди",
@@ -405,7 +405,7 @@ export const translations: Record<LangType, Record<string, string>> = {
     darkMode: "Ночной режим",
     shiftOpen: "Смена открыта",
     closeShiftBtn: "Закрыть смену",
-    newRegistrationBtn: "+ Быстрый прием (15 сек)",
+    newRegistrationBtn: "+ Быстрый прием",
     
     kpiRevenue: "Выручка за сегодня",
     kpiVisits: "Посещения сегодня",
@@ -452,7 +452,7 @@ export const translations: Record<LangType, Record<string, string>> = {
     debt: "В долг / Насия",
     
     regTitle: "Быстрая регистрация / Бронирование",
-    regSubtitle: "Логика оформления гостя за 15 секунд",
+    regSubtitle: "Регистрация клиентов и управление сеансами",
     searchClientPhone: "Номер телефона (+998)",
     enterPhoneNotice: "Поиск в базе сразу при вводе номера",
     clientFound: "Найден в базе",

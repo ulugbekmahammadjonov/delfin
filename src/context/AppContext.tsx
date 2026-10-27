@@ -25,6 +25,7 @@ import {
 } from '../types';
 import { translations } from '../utils/translations';
 import { soundManager } from '../utils/audio';
+import { formatTime24 } from '../utils/dateUtils';
 
 const AppContext = createContext<AppContextType | null>(null);
 
@@ -56,6 +57,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => loadLocal('sound', true));
   const [userRole, setUserRole] = useState<UserRole>(() => loadLocal('role', 'super_admin'));
   const [autoPersist, setAutoPersist] = useState<boolean>(() => loadLocal('autoPersist', true));
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() =>
+    loadLocal('sidebar_collapsed', false)
+  );
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      saveLocal('sidebar_collapsed', next);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    setIsMobileSidebarOpen(false);
+  }, [location.pathname]);
 
   // Route-based currentTab
   const getTabFromPath = (path: string): string => {
@@ -88,14 +105,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [rooms, setRooms] = useState<Room[]>(() => {
     const loaded = loadLocal<Room[]>('rooms', []);
     if (loaded && loaded.length === 2 && loaded.every((r) => r.id === 'r1' || r.id === 'r2')) {
-      return loaded.map((r) => ((r.status as string) === 'cleaning' ? { ...r, status: 'free' as const } : r));
+      return loaded.map((r) => {
+        const updatedName = r.name ? r.name.replace(/zal/gi, 'sauna').replace(/xona/gi, 'sauna') : r.name;
+        return {
+          ...r,
+          name: updatedName,
+          status: (r.status as string) === 'cleaning' ? ('free' as const) : r.status,
+        };
+      });
     }
     return getFreshRooms();
   });
   const [clients, setClients] = useState<Client[]>(() => {
     const loaded = loadLocal<Client[]>('clients', []);
     if (loaded && loaded.length > 0 && loaded.some((c) => c.visitsHistory && c.visitsHistory.length > 0)) {
-      return loaded;
+      return loaded.map((c) => ({
+        ...c,
+        notes: c.notes ? c.notes.replace(/zal/gi, 'sauna').replace(/xona/gi, 'sauna') : c.notes,
+        visitsHistory: Array.isArray(c.visitsHistory)
+          ? c.visitsHistory.map((v) => ({
+              ...v,
+              roomName: v.roomName ? v.roomName.replace(/zal/gi, 'sauna').replace(/xona/gi, 'sauna') : 'Sauna',
+            }))
+          : [],
+      }));
     }
     return initialClients;
   });
@@ -103,7 +136,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [sessions, setSessions] = useState<Session[]>(() => {
     const loaded = loadLocal<Session[]>('sessions', []);
     if (loaded && loaded.length > 0 && loaded.every((s) => s.roomId === 'r1' || s.roomId === 'r2')) {
-      return loaded;
+      return loaded.map((s) => ({
+        ...s,
+        roomName: s.roomName ? s.roomName.replace(/zal/gi, 'sauna').replace(/xona/gi, 'sauna') : 'Sauna',
+        barOrders: Array.isArray(s.barOrders) ? s.barOrders : [],
+      }));
     }
     return getFreshSessions();
   });
@@ -216,7 +253,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const t = translations[lang] || translations.uz;
 
   const addLog = (actionText: string) => {
-    const nowTime = new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+    const nowTime = formatTime24(new Date());
     const authorName = userRole === 'super_admin' ? 'Super Admin' : 'Dilshod (Administrator)';
     const newLog: ActionLog = {
       id: 'l_' + Date.now(),
@@ -235,19 +272,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const upsertClient = (clientData: { phone: string; name: string; amount?: number }): Client => {
     const existing = findClientByPhone(clientData.phone);
     if (existing) {
-      setClients((prev) =>
-        prev.map((c) =>
-          c.id === existing.id
-            ? {
-                ...c,
-                name: clientData.name || c.name,
-                visitsCount: c.visitsCount + 1,
-                lastVisitDate: new Date().toISOString().split('T')[0],
-              }
-            : c
-        )
-      );
-      return existing;
+      const updated: Client = {
+        ...existing,
+        name: clientData.name || existing.name,
+        visitsCount: existing.visitsCount + 1,
+        totalSpent: existing.totalSpent + (clientData.amount || 0),
+        lastVisitDate: new Date().toISOString().split('T')[0],
+      };
+      setClients((prev) => [updated, ...prev.filter((c) => c.id !== existing.id)]);
+      return updated;
     } else {
       const newClient: Client = {
         id: 'c_' + Date.now(),
@@ -256,6 +289,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         visitsCount: 1,
         totalSpent: clientData.amount || 0,
         lastVisitDate: new Date().toISOString().split('T')[0],
+        registeredDate: new Date().toISOString().split('T')[0],
         bonusBalance: Math.round((clientData.amount || 0) * 0.05),
         status: 'Yangi mijoz',
         isBlacklisted: false,
@@ -278,7 +312,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       phone: sessionData.phone,
       guestsCount: sessionData.guestsCount || 1,
       roomId: sessionData.roomId,
-      roomName: sessionData.roomName || 'Xona',
+      roomName: sessionData.roomName || 'Sauna',
       type: sessionData.type || 'instant',
       durationHours: duration,
       startTime: startTime,
@@ -295,6 +329,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       status: sessionData.type === 'instant' ? 'active' : 'booking',
       bookingDate: sessionData.bookingDate || null,
       bookingTime: sessionData.bookingTime || null,
+      isExclusive: sessionData.isExclusive || false,
     };
 
     setSessions((prev) => [newSession, ...prev]);
@@ -306,9 +341,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const currentActive = sessions.filter(
             (s) => s.roomId === r.id && (s.status === 'active' || s.status === 'overtime')
           );
+          const hasExclusive = Boolean(sessionData.isExclusive || currentActive.some((s) => s.isExclusive));
           const totalGuests =
             currentActive.reduce((acc, s) => acc + (s.guestsCount || 0), 0) + (sessionData.guestsCount || 1);
-          const newStatus: RoomStatus = totalGuests >= r.capacity ? 'busy' : 'partial';
+          const newStatus: RoomStatus = (hasExclusive || totalGuests >= r.capacity) ? 'busy' : 'partial';
           return { ...r, status: newStatus, currentSessionId: newId };
         })
       );
@@ -357,9 +393,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const session = sessions.find((s) => s.id === sessionId);
     if (!session) return;
 
+    const nowIso = new Date().toISOString();
+
     setSessions((prev) =>
       prev.map((s) =>
-        s.id === sessionId ? { ...s, status: 'completed' as const, paymentStatus: 'full' as const } : s
+        s.id === sessionId
+          ? {
+              ...s,
+              status: 'completed' as const,
+              paymentStatus: 'full' as const,
+              completedAt: nowIso,
+            }
+          : s
       )
     );
 
@@ -368,11 +413,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         (s) => s.id !== sessionId && s.roomId === session.roomId && (s.status === 'active' || s.status === 'overtime')
       );
       const remainingGuests = remainingActiveSessions.reduce((acc, s) => acc + (s.guestsCount || 0), 0);
+      const hasExclusive = remainingActiveSessions.some((s) => s.isExclusive);
       const room = rooms.find((r) => r.id === session.roomId);
       const capacity = room?.capacity || 7;
 
       const newStatus: RoomStatus =
-        remainingGuests === 0 ? 'free' : remainingGuests < capacity ? 'partial' : 'busy';
+        remainingGuests === 0 ? 'free' : (hasExclusive || remainingGuests >= capacity) ? 'busy' : 'partial';
 
       setRooms((prev) =>
         prev.map((r) =>
@@ -409,10 +455,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
 
     if (session.roomId) {
+      const otherActive = sessions.filter(
+        (s) => s.id !== sessionId && s.roomId === session.roomId && (s.status === 'active' || s.status === 'overtime')
+      );
+      const room = rooms.find((r) => r.id === session.roomId);
+      const capacity = room?.capacity || 7;
+      const totalGuests = otherActive.reduce((acc, s) => acc + (s.guestsCount || 0), 0) + (session.guestsCount || 0);
+      const isBusy = Boolean(session.isExclusive || otherActive.some((s) => s.isExclusive) || totalGuests >= capacity);
+
+      const newStatus: RoomStatus = isBusy ? 'busy' : 'partial';
+
       setRooms((prev) =>
         prev.map((r) =>
           r.id === session.roomId
-            ? { ...r, status: 'busy' as const, currentSessionId: sessionId }
+            ? { ...r, status: newStatus, currentSessionId: sessionId }
             : r
         )
       );
@@ -427,7 +483,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!session) return;
 
     setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-    addLog(`DIQQAT: Bron bekor qilindi! (${session.clientName}, xona: ${session.roomName}, sababi: ${reason})`);
+    addLog(`DIQQAT: Bron bekor qilindi! (${session.clientName}, sauna: ${session.roomName}, sababi: ${reason})`);
   };
 
   const addBarOrderToSession = (sessionId: string, orderedItem: BarOrderItem) => {
@@ -500,14 +556,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       )
     );
     const room = rooms.find((r) => r.id === roomId);
-    addLog(`Xona holati o'zgartirildi: ${room?.name} -> ${newStatus.toUpperCase()}`);
+    addLog(`Sauna holati o'zgartirildi: ${room?.name} -> ${newStatus.toUpperCase()}`);
     soundManager.playSuccess();
   };
 
   const addExpense = (expenseData: { category: string; amount: number; note?: string }) => {
     const newExp: Expense = {
       id: 'e_' + Date.now(),
-      time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+      time: formatTime24(new Date()),
       category: expenseData.category,
       amount: expenseData.amount || 0,
       note: expenseData.note || '',
@@ -569,6 +625,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         resetAllData,
         autoPersist,
         setAutoPersist,
+        isSidebarCollapsed,
+        setIsSidebarCollapsed,
+        toggleSidebar,
+        isMobileSidebarOpen,
+        setIsMobileSidebarOpen,
       }}
     >
       {children}

@@ -96,6 +96,8 @@ export interface Session {
   status: SessionStatus;
   bookingDate?: string | null;
   bookingTime?: string | null;
+  completedAt?: string | null;
+  isExclusive?: boolean;
 }
 
 export interface Expense {
@@ -163,4 +165,9 @@ export interface AppContextType {
   resetAllData: () => void;
   autoPersist: boolean;
   setAutoPersist: (val: boolean) => void;
+  isSidebarCollapsed: boolean;
+  setIsSidebarCollapsed: (val: boolean) => void;
+  toggleSidebar: () => void;
+  isMobileSidebarOpen: boolean;
+  setIsMobileSidebarOpen: (val: boolean) => void;
 }

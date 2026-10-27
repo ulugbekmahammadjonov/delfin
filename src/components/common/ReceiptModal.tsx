@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { Printer, X } from 'lucide-react';
+import { formatDateTime24 } from '../../utils/dateUtils';
 
 export default function ReceiptModal() {
   const { activeReceiptSession, setActiveReceiptSession } = useApp();
@@ -9,13 +10,7 @@ export default function ReceiptModal() {
 
   const session = activeReceiptSession;
   const receiptNo = `CHK-${session.id.slice(-6).toUpperCase()}`;
-  const printDate = new Date().toLocaleString('uz-UZ', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const printDate = formatDateTime24(new Date());
 
   const handlePrint = () => {
     window.print();
@@ -60,7 +55,7 @@ export default function ReceiptModal() {
               <span>{session.phone}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Xona:</span>
+              <span className="text-slate-500">Sauna:</span>
               <span className="font-bold text-sky-600 dark:text-sky-400">{session.roomName}</span>
             </div>
             <div className="flex justify-between">
