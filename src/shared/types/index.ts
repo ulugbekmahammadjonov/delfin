@@ -117,6 +117,46 @@ export interface ActionLog {
   action: string;
 }
 
+export interface StaffBonusConfig {
+  enabled: boolean;
+  startTime: string; // masalan "20:00"
+  endTime: string; // masalan "06:00"
+  bonusHourlyRate: number; // masalan 25000 so'm/soat
+}
+
+export interface StaffShiftRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  date: string; // YYYY-MM-DD masalan "2026-10-30"
+  checkInTime: string; // HH:mm masalan "06:00"
+  checkOutTime: string; // HH:mm masalan "19:00"
+  breakHours: number; // masalan 1.5 ("ishdan tashqari holat / shaxsiy ish")
+  breakReason?: string; // masalan "Uyga borib keldi"
+  regularHours?: number; // kunduzgi sof soatlar
+  bonusHours?: number; // tungi / bonus sof soatlar
+  totalWorkHours: number; // sof ishlangan soat: regularHours + bonusHours
+  hourlyRate: number; // kunduzgi soatlik stavka, masalan 20000
+  bonusHourlyRate?: number; // bonus soatlik stavka, masalan 25000
+  earnedAmount: number; // hisoblangan ish haqi
+  cashAdvance: number; // kassirdan olingan pul (avans), masalan 100000
+  balance: number; // earnedAmount - cashAdvance
+  notes?: string;
+  recordedBy?: string;
+  createdAt: string;
+}
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  role: string; // Lavozimi: masalan "Sauna operatori / Texnik", "Farrosh / Tozalovchi", "Massajchi / Bannik", "Oshpaz"
+  phone: string;
+  hourlyRate: number; // Standart: 20000 so'm/soat
+  status: 'active' | 'inactive';
+  hireDate: string;
+  notes?: string;
+}
+
 export interface AppContextType {
   lang: LangType;
   setLang: (lang: LangType) => void;
@@ -154,6 +194,25 @@ export interface AppContextType {
   addExpense: (expenseData: { category: string; amount: number; note?: string }) => void;
   actionLogs: ActionLog[];
   addLog: (actionText: string) => void;
+
+  // Staff & Payroll Management
+  staffMembers: StaffMember[];
+  setStaffMembers: React.Dispatch<React.SetStateAction<StaffMember[]>>;
+  staffShifts: StaffShiftRecord[];
+  setStaffShifts: React.Dispatch<React.SetStateAction<StaffShiftRecord[]>>;
+  defaultStaffHourlyRate: number;
+  setDefaultStaffHourlyRate: (rate: number) => void;
+  staffBonusConfig: StaffBonusConfig;
+  setStaffBonusConfig: (config: StaffBonusConfig) => void;
+  addStaffMember: (member: Omit<StaffMember, 'id'>) => StaffMember;
+  updateStaffMember: (id: string, updates: Partial<StaffMember>) => void;
+  deleteStaffMember: (id: string) => void;
+  addStaffShift: (
+    shiftData: Omit<StaffShiftRecord, 'id' | 'totalWorkHours' | 'earnedAmount' | 'balance' | 'createdAt'>,
+    syncToCashier?: boolean
+  ) => StaffShiftRecord;
+  updateStaffShift: (id: string, updates: Partial<StaffShiftRecord>) => void;
+  deleteStaffShift: (id: string) => void;
 
   currentTime: number;
   activeReceiptSession: Session | null;

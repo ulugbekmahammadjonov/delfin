@@ -9,6 +9,7 @@ import {
   MiniBarPage,
   CrmPage,
   CashierPage,
+  StaffPage,
   SettingsPage,
 } from '@/pages';
 
@@ -19,6 +20,7 @@ import {
   ShoppingBag,
   Users,
   Wallet,
+  UserCheck,
   Settings,
 } from 'lucide-react';
 
@@ -32,6 +34,7 @@ function MainLayout() {
     { id: 'minibar', path: '/minibar', label: 'Mini-Bar', icon: ShoppingBag },
     { id: 'crm', path: '/crm', label: 'CRM', icon: Users },
     { id: 'cashier', path: '/cashier', label: 'Kassa', icon: Wallet },
+    { id: 'staff', path: '/staff', label: 'Xodimlar', icon: UserCheck },
     { id: 'settings', path: '/settings', label: 'Sozlama', icon: Settings },
   ];
 
@@ -53,6 +56,7 @@ function MainLayout() {
             <Route path="/minibar" element={<MiniBarPage />} />
             <Route path="/crm" element={<CrmPage />} />
             <Route path="/cashier" element={<CashierPage />} />
+            <Route path="/staff" element={<StaffPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

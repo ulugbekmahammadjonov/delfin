@@ -8,6 +8,8 @@ import {
   getFreshSessions,
   initialExpenses,
   initialActionLogs,
+  initialStaffMembers,
+  initialStaffShifts,
 } from '@/shared/data/mockData';
 import {
   Tariffs,
@@ -22,10 +24,13 @@ import {
   LangType,
   UserRole,
   AppContextType,
+  StaffMember,
+  StaffShiftRecord,
+  StaffBonusConfig,
 } from '@/shared/types';
 import { translations } from '@/shared/utils/translations';
 import { soundManager } from '@/shared/utils/audio';
-import { formatTime24 } from '@/shared/utils/dateUtils';
+import { formatTime24, calculateShiftHours, calculateShiftBreakdown } from '@/shared/utils/dateUtils';
 
 const AppContext = createContext<AppContextType | null>(null);
 
@@ -81,6 +86,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (path.startsWith('/minibar')) return 'minibar';
     if (path.startsWith('/crm')) return 'crm';
     if (path.startsWith('/cashier')) return 'cashier';
+    if (path.startsWith('/staff')) return 'staff';
     if (path.startsWith('/settings')) return 'settings';
     return 'dashboard';
   };
@@ -95,6 +101,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       minibar: '/minibar',
       crm: '/crm',
       cashier: '/cashier',
+      staff: '/staff',
       settings: '/settings',
     };
     navigate(pathToTab[tab] || '/');
@@ -147,6 +154,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>(() => loadLocal('expenses', initialExpenses));
   const [actionLogs, setActionLogs] = useState<ActionLog[]>(() => loadLocal('actionLogs', initialActionLogs));
 
+  // Staff & Payroll state
+  const [defaultStaffHourlyRate, setDefaultStaffHourlyRateState] = useState<number>(() =>
+    loadLocal('staff_hourly_rate', 20000)
+  );
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>(() =>
+    loadLocal('staff_members', initialStaffMembers)
+  );
+  const [staffShifts, setStaffShifts] = useState<StaffShiftRecord[]>(() =>
+    loadLocal('staff_shifts', initialStaffShifts)
+  );
+  const [staffBonusConfig, setStaffBonusConfigState] = useState<StaffBonusConfig>(() =>
+    loadLocal('staff_bonus_config', {
+      enabled: true,
+      startTime: '20:00',
+      endTime: '06:00',
+      bonusHourlyRate: 25000,
+    })
+  );
+
   // Sync to LocalStorage if autoPersist is true
   useEffect(() => { saveLocal('lang', lang); }, [lang]);
   useEffect(() => { saveLocal('darkMode', isDarkMode); }, [isDarkMode]);
@@ -182,9 +208,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (autoPersist) saveLocal('actionLogs', actionLogs);
   }, [actionLogs, autoPersist]);
 
+  useEffect(() => {
+    if (autoPersist) saveLocal('staff_members', staffMembers);
+  }, [staffMembers, autoPersist]);
+
+  useEffect(() => {
+    if (autoPersist) saveLocal('staff_shifts', staffShifts);
+  }, [staffShifts, autoPersist]);
+
+  useEffect(() => {
+    if (autoPersist) saveLocal('staff_hourly_rate', defaultStaffHourlyRate);
+  }, [defaultStaffHourlyRate, autoPersist]);
+
+  useEffect(() => {
+    if (autoPersist) saveLocal('staff_bonus_config', staffBonusConfig);
+  }, [staffBonusConfig, autoPersist]);
+
   // Reset all data to default mock state
   const resetAllData = () => {
-    const keys = ['tariffs', 'rooms', 'clients', 'products', 'sessions', 'expenses', 'actionLogs'];
+    const keys = [
+      'tariffs',
+      'rooms',
+      'clients',
+      'products',
+      'sessions',
+      'expenses',
+      'actionLogs',
+      'staff_members',
+      'staff_shifts',
+      'staff_hourly_rate',
+      'staff_bonus_config',
+    ];
     keys.forEach((k) => localStorage.removeItem(`delfin_${k}`));
 
     setTariffs(initialTariffs);
@@ -194,6 +248,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSessions(getFreshSessions());
     setExpenses(initialExpenses);
     setActionLogs(initialActionLogs);
+    setStaffMembers(initialStaffMembers);
+    setStaffShifts(initialStaffShifts);
+    setDefaultStaffHourlyRateState(20000);
+    setStaffBonusConfigState({
+      enabled: true,
+      startTime: '20:00',
+      endTime: '06:00',
+      bonusHourlyRate: 25000,
+    });
 
     soundManager.playSuccess();
   };
@@ -583,6 +646,131 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     soundManager.playSuccess();
   };
 
+  // Staff & Payroll Management Methods
+  const setDefaultStaffHourlyRate = (rate: number) => {
+    setDefaultStaffHourlyRateState(rate);
+    saveLocal('staff_hourly_rate', rate);
+    addLog(`Xodimlarning soatlik stavkasi yangilandi: ${rate.toLocaleString()} so'm/soat`);
+    soundManager.playSuccess();
+  };
+
+  const setStaffBonusConfig = (config: StaffBonusConfig) => {
+    setStaffBonusConfigState(config);
+    saveLocal('staff_bonus_config', config);
+    addLog(`Super Admin tomonidan xodimlarning bonus stavkasi yangilandi (${config.startTime}-${config.endTime}: ${config.bonusHourlyRate.toLocaleString()} so'm/soat)`);
+    soundManager.playSuccess();
+  };
+
+  const addStaffMember = (memberData: Omit<StaffMember, 'id'>) => {
+    const newMember: StaffMember = {
+      ...memberData,
+      id: `emp_${Date.now()}`,
+      hourlyRate: memberData.hourlyRate || defaultStaffHourlyRate,
+    };
+    setStaffMembers((prev) => [newMember, ...prev]);
+    addLog(`Yangi xodim qo'shildi: ${newMember.name} (${newMember.role})`);
+    soundManager.playSuccess();
+    return newMember;
+  };
+
+  const updateStaffMember = (id: string, updates: Partial<StaffMember>) => {
+    setStaffMembers((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
+    );
+    addLog(`Xodim ma'lumotlari tahrirlandi (ID: ${id})`);
+    soundManager.playSuccess();
+  };
+
+  const deleteStaffMember = (id: string) => {
+    setStaffMembers((prev) => prev.filter((m) => m.id !== id));
+    addLog(`Xodim o'chirildi (ID: ${id})`);
+    soundManager.playSuccess();
+  };
+
+  const addStaffShift = (
+    shiftData: Omit<StaffShiftRecord, 'id' | 'totalWorkHours' | 'earnedAmount' | 'balance' | 'createdAt'>,
+    syncToCashier: boolean = true
+  ): StaffShiftRecord => {
+    const rate = shiftData.hourlyRate || defaultStaffHourlyRate;
+    const breakdown = calculateShiftBreakdown(
+      shiftData.checkInTime,
+      shiftData.checkOutTime,
+      shiftData.breakHours,
+      rate,
+      staffBonusConfig
+    );
+    const earned = breakdown.totalEarned;
+    const advance = Math.round(Number(shiftData.cashAdvance) || 0);
+    const bal = earned - advance;
+
+    const newShift: StaffShiftRecord = {
+      ...shiftData,
+      id: `shift_${Date.now()}`,
+      regularHours: breakdown.regularHours,
+      bonusHours: breakdown.bonusHours,
+      totalWorkHours: breakdown.netHours,
+      hourlyRate: rate,
+      bonusHourlyRate: staffBonusConfig.enabled ? staffBonusConfig.bonusHourlyRate : undefined,
+      earnedAmount: earned,
+      cashAdvance: advance,
+      balance: bal,
+      createdAt: new Date().toISOString(),
+    };
+
+    setStaffShifts((prev) => [newShift, ...prev]);
+    addLog(`Xodim smenasi qayd etildi: ${shiftData.employeeName} (${shiftData.date}, ${breakdown.netHours} soat: ${breakdown.regularHours}h kunduzgi, ${breakdown.bonusHours}h bonus, ${earned.toLocaleString()} so'm)`);
+    soundManager.playSuccess();
+
+    if (advance > 0 && syncToCashier) {
+      addExpense({
+        category: 'Xodimlarga avans / ish haqi',
+        amount: advance,
+        note: `${shiftData.employeeName} ga berilgan avans (${shiftData.date})`,
+      });
+    }
+
+    return newShift;
+  };
+
+  const updateStaffShift = (id: string, updates: Partial<StaffShiftRecord>) => {
+    setStaffShifts((prev) =>
+      prev.map((shift) => {
+        if (shift.id !== id) return shift;
+        const merged = { ...shift, ...updates };
+        const rate = merged.hourlyRate || defaultStaffHourlyRate;
+        const breakdown = calculateShiftBreakdown(
+          merged.checkInTime,
+          merged.checkOutTime,
+          merged.breakHours,
+          rate,
+          staffBonusConfig
+        );
+        const earned = breakdown.totalEarned;
+        const advance = Math.round(Number(merged.cashAdvance) || 0);
+        const bal = earned - advance;
+        return {
+          ...merged,
+          regularHours: breakdown.regularHours,
+          bonusHours: breakdown.bonusHours,
+          totalWorkHours: breakdown.netHours,
+          hourlyRate: rate,
+          bonusHourlyRate: staffBonusConfig.enabled ? staffBonusConfig.bonusHourlyRate : undefined,
+          earnedAmount: earned,
+          cashAdvance: advance,
+          balance: bal,
+        };
+      })
+    );
+    addLog(`Xodim smenasi yangilandi (ID: ${id})`);
+    soundManager.playSuccess();
+  };
+
+  const deleteStaffShift = (id: string) => {
+    setStaffShifts((prev) => prev.filter((s) => s.id !== id));
+    addLog(`Xodim smenasi o'chirildi (ID: ${id})`);
+    soundManager.playSuccess();
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -622,6 +810,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addExpense,
         actionLogs,
         addLog,
+
+        staffMembers,
+        setStaffMembers,
+        staffShifts,
+        setStaffShifts,
+        defaultStaffHourlyRate,
+        setDefaultStaffHourlyRate,
+        staffBonusConfig,
+        setStaffBonusConfig,
+        addStaffMember,
+        updateStaffMember,
+        deleteStaffMember,
+        addStaffShift,
+        updateStaffShift,
+        deleteStaffShift,
 
         currentTime,
         activeReceiptSession,

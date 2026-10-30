@@ -4,4 +4,5 @@ export * from './rooms';
 export * from './minibar';
 export * from './crm';
 export * from './cashier';
+export * from './staff';
 export * from './settings';

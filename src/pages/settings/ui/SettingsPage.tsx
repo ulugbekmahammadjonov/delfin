@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/app/providers/AppContext';
-import { formatTime24 } from '@/shared/utils/dateUtils';
+import { formatTime24, formatSum } from '@/shared/utils/dateUtils';
 import {
   Settings,
   ShieldCheck,
@@ -13,6 +13,14 @@ import {
   RotateCcw,
   Database,
   HardDrive,
+  Clock,
+  Moon,
+  DollarSign,
+  Lock,
+  ShieldAlert,
+  Users,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 
 export default function SettingsView() {
@@ -26,6 +34,13 @@ export default function SettingsView() {
     resetAllData,
     autoPersist,
     setAutoPersist,
+    userRole,
+    defaultStaffHourlyRate,
+    setDefaultStaffHourlyRate,
+    staffBonusConfig,
+    setStaffBonusConfig,
+    staffMembers,
+    updateStaffMember,
   } = useApp();
 
   const [hour1, setHour1] = useState<number>(tariffs.hour1);
@@ -39,6 +54,66 @@ export default function SettingsView() {
   const [botResponse, setBotResponse] = useState<string>(
     `🐬 DELFIN SAUNA — JONLI STATUS\n\n👥 Ichkaridagi odamlar: 12 kishi\n🔥 Faol seanslar soni: 3 ta\n🚪 Band saunalar: Kichik sauna, Katta sauna\n\n✅ Tizim normal rejimda ishlamoqda.`
   );
+
+  // Staff rates & bonus configuration (Super Admin only)
+  const [standardStaffRate, setStandardStaffRate] = useState<number>(defaultStaffHourlyRate || 20000);
+  const [bonusEnabled, setBonusEnabled] = useState<boolean>(staffBonusConfig?.enabled ?? true);
+  const [bonusStartTime, setBonusStartTime] = useState<string>(staffBonusConfig?.startTime || '20:00');
+  const [bonusEndTime, setBonusEndTime] = useState<string>(staffBonusConfig?.endTime || '06:00');
+  const [bonusHourlyRate, setBonusHourlyRate] = useState<number>(staffBonusConfig?.bonusHourlyRate || 25000);
+  const [individualStaffRates, setIndividualStaffRates] = useState<Record<string, number>>({});
+  const [staffSettingsSaved, setStaffSettingsSaved] = useState<boolean>(false);
+
+  useEffect(() => {
+    setStandardStaffRate(defaultStaffHourlyRate || 20000);
+  }, [defaultStaffHourlyRate]);
+
+  useEffect(() => {
+    if (staffBonusConfig) {
+      setBonusEnabled(staffBonusConfig.enabled);
+      setBonusStartTime(staffBonusConfig.startTime || '20:00');
+      setBonusEndTime(staffBonusConfig.endTime || '06:00');
+      setBonusHourlyRate(staffBonusConfig.bonusHourlyRate || 25000);
+    }
+  }, [staffBonusConfig]);
+
+  useEffect(() => {
+    const ratesMap: Record<string, number> = {};
+    staffMembers.forEach((m) => {
+      ratesMap[m.id] = m.hourlyRate || defaultStaffHourlyRate || 20000;
+    });
+    setIndividualStaffRates(ratesMap);
+  }, [staffMembers, defaultStaffHourlyRate]);
+
+  const handleSaveStaffSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (userRole !== 'super_admin') {
+      alert("Kechirasiz, xodimlar tariflari va bonus stavkalarini o'zgartirish huquqi faqat Super Adminga tegishli!");
+      return;
+    }
+
+    // 1. Save standard rate
+    setDefaultStaffHourlyRate(Number(standardStaffRate) || 20000);
+
+    // 2. Save bonus config
+    setStaffBonusConfig({
+      enabled: bonusEnabled,
+      startTime: bonusStartTime,
+      endTime: bonusEndTime,
+      bonusHourlyRate: Number(bonusHourlyRate) || 25000,
+    });
+
+    // 3. Save individual staff rates
+    staffMembers.forEach((m) => {
+      const updatedRate = individualStaffRates[m.id];
+      if (updatedRate && updatedRate !== m.hourlyRate) {
+        updateStaffMember(m.id, { hourlyRate: Number(updatedRate) });
+      }
+    });
+
+    setStaffSettingsSaved(true);
+    setTimeout(() => setStaffSettingsSaved(false), 3500);
+  };
 
   const handleSaveTariffs = (e: React.FormEvent) => {
     e.preventDefault();
@@ -287,6 +362,268 @@ export default function SettingsView() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Super Admin Exclusive: Xodimlarning Soatbay Ish Haqi va Bonus Sozlamalari */}
+      <div className={`p-5 rounded-2xl border shadow-sm space-y-5 transition-all ${
+        userRole === 'super_admin'
+          ? 'bg-white dark:bg-slate-900 border-purple-500/30 dark:border-purple-500/20 shadow-purple-500/5'
+          : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-90'
+      }`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                Xodimlar Soatbay Ish Haqi va Bonus Sozlamalari
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Standart stavka, tungi/bonus vaqtlari va xodimlar kesimida individual to'lovlar
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {userRole === 'super_admin' ? (
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-300 dark:border-purple-800 flex items-center gap-1.5 shadow-sm">
+                <ShieldCheck className="w-4 h-4 text-purple-600" />
+                Faqat Super Admin Huquqi (Ochiq)
+              </span>
+            ) : (
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 flex items-center gap-1.5 shadow-sm">
+                <Lock className="w-4 h-4 text-amber-600" />
+                Qulflangan (Faqat Super Admin o'zgartira oladi)
+              </span>
+            )}
+          </div>
+        </div>
+
+        {userRole !== 'super_admin' && (
+          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2.5">
+            <ShieldAlert className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>
+              <strong>Diqqat:</strong> Siz hozir <em>Administrator (Kassir)</em> rolidasiz. Xodimlarning soatbay ish haqi stavkalari va bonus vaqtlarini o'zgartirish faqat <strong>Super Admin</strong> tomonidan amalga oshiriladi.
+            </span>
+          </div>
+        )}
+
+        <form onSubmit={handleSaveStaffSettings} className="space-y-6">
+          <fieldset disabled={userRole !== 'super_admin'} className="space-y-6">
+            {/* 1. Standart Soatlik Ish Haqi va Bonus Oralig'i */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              {/* Standart Kunduzgi Stavka */}
+              <div className="lg:col-span-5 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+                  <DollarSign className="w-4 h-4 text-emerald-500" />
+                  <span>Standart Soatlik Ish Haqi (Kunduzgi)</span>
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">
+                    Asosiy stavka miqdori (so'm/soat)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="1000"
+                      min="5000"
+                      value={standardStaffRate}
+                      onChange={(e) => setStandardStaffRate(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">
+                      UZS / soat
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                    Yangi xodimlar yoki individual stavkasi yo'q ishchilar uchun standart to'lov (hozirda {formatSum(standardStaffRate)} so'm).
+                  </p>
+                </div>
+              </div>
+
+              {/* Bonus / Tungi Stavka Sozlamalari */}
+              <div className="lg:col-span-7 p-4 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-purple-900 dark:text-purple-300">
+                    <Moon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span>Bonus Vaqti va To'lovi (Tungi smena)</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={bonusEnabled}
+                      onChange={(e) => setBonusEnabled(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                      Boshlanish vaqti
+                    </label>
+                    <input
+                      type="time"
+                      value={bonusStartTime}
+                      onChange={(e) => setBonusStartTime(e.target.value)}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Masalan: 20:00</span>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                      Tugash vaqti
+                    </label>
+                    <input
+                      type="time"
+                      value={bonusEndTime}
+                      onChange={(e) => setBonusEndTime(e.target.value)}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Masalan: 06:00</span>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-purple-700 dark:text-purple-300 block mb-1">
+                      Bonus stavkasi
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="1000"
+                        min="5000"
+                        value={bonusHourlyRate}
+                        onChange={(e) => setBonusHourlyRate(Number(e.target.value))}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 rounded-xl text-xs font-black text-purple-700 dark:text-purple-300 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                      />
+                      <span className="absolute right-2.5 top-2 text-[10px] text-purple-500 font-bold">
+                        UZS/h
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Masalan: 25 000</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-purple-100/60 dark:bg-purple-900/30 text-[11px] text-purple-800 dark:text-purple-200 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-500 shrink-0" />
+                  <span>
+                    Qoida: <strong>{bonusStartTime}</strong> dan ertalabki <strong>{bonusEndTime}</strong> gacha ishlangan soatlarga <strong>{formatSum(bonusHourlyRate)} so'm/soat</strong>, qolgan kunduzgi vaqtga esa <strong>{formatSum(standardStaffRate)} so'm/soat</strong> hisoblanadi.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Xodimlar Kesimida Individual Soatlik Stavkalar */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
+                  <Users className="w-4 h-4 text-purple-500" />
+                  Qaysi Xodimga Soatiga Qanchadan Hisoblanishi (Individual Stavkalar)
+                </h3>
+                <span className="text-[11px] text-slate-400">
+                  Har bir xodimga o'ziga xos soatlik to'lov stavkasi
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {staffMembers.map((member) => {
+                  const currentRate = individualStaffRates[member.id] ?? (member.hourlyRate || standardStaffRate);
+                  return (
+                    <div
+                      key={member.id}
+                      className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col justify-between space-y-2.5"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                            {member.name}
+                          </span>
+                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                            {member.role.split('/')[0]}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          {member.phone}
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">
+                          Soatlik to'lov stavkasi:
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <div className="relative flex-1">
+                            <input
+                              type="number"
+                              step="1000"
+                              min="5000"
+                              value={currentRate}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setIndividualStaffRates((prev) => ({
+                                  ...prev,
+                                  [member.id]: val,
+                                }));
+                              }}
+                              className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                            />
+                            <span className="absolute right-2 top-1.5 text-[10px] text-slate-400 font-mono">
+                              so'm
+                            </span>
+                          </div>
+
+                          {currentRate !== standardStaffRate && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIndividualStaffRates((prev) => ({
+                                  ...prev,
+                                  [member.id]: standardStaffRate,
+                                }));
+                              }}
+                              className="p-1.5 text-[10px] text-slate-400 hover:text-purple-600 rounded"
+                              title="Standart stavkaga tenglashtirish"
+                            >
+                              ↺
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </fieldset>
+
+          {/* Footer Save Button */}
+          {userRole === 'super_admin' && (
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              {staffSettingsSaved ? (
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5 text-xs">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Xodimlar stavkalari va bonus vaqti muvaffaqiyatli saqlandi!
+                </span>
+              ) : (
+                <span className="text-[11px] text-slate-400">
+                  O'zgarishlar barcha keyingi kunlik hisob-kitoblar va vedomostlarga to'liq tatbiq etiladi
+                </span>
+              )}
+
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-purple-600 hover:bg-purple-700 active:scale-95 shadow-lg shadow-purple-500/20 transition-all flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Xodimlar Sozlamalarini Saqlash
+              </button>
+            </div>
+          )}
+        </form>
       </div>
 
       {/* Row 2: Data Storage & Persistence Controls */}
