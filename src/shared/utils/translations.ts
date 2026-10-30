@@ -11,7 +11,12 @@ export const translations: Record<LangType, Record<string, string>> = {
     minibar: "Mini-Bar va Ombor",
     crm: "Mijozlar bazasi (CRM)",
     cashier: "Kassa va Xarajatlar",
+    staff: "Xodimlar va Ish haqi",
     settings: "Sozlamalar va Tariflar",
+    
+    // Staff & Payroll
+    staffTitle: "Xodimlar va Soatbay Ish Haqi",
+    staffSubtitle: "Kunlik davomat, ishdan tashqari tanaffuslar, kassadan olingan avanslar va oylik vedomost",
     
     // Header & Roles
     superAdmin: "Super Admin (Rahbar)",
@@ -207,7 +212,12 @@ export const translations: Record<LangType, Record<string, string>> = {
     minibar: "Мини-Бар ва Омбор",
     crm: "Мижозлар базаси (CRM)",
     cashier: "Касса ва Харажатлар",
+    staff: "Ходимлар ва Иш ҳақи",
     settings: "Созламалар ва Тарифлар",
+    
+    // Staff & Payroll
+    staffTitle: "Ходимлар ва Соатбай Иш Ҳақи",
+    staffSubtitle: "Кунлик давомат, ишдан ташқари танаффуслар, кассадан олинган аванслар ва ойлик ведомост",
     
     superAdmin: "Супер Админ (Раҳбар)",
     adminKassir: "Администратор (Кассир)",
@@ -394,7 +404,12 @@ export const translations: Record<LangType, Record<string, string>> = {
     minibar: "Мини-Бар и Склад",
     crm: "База клиентов (CRM)",
     cashier: "Касса и Расходы",
+    staff: "Сотрудники и Зарплата",
     settings: "Настройки и Тарифы",
+    
+    // Staff & Payroll
+    staffTitle: "Сотрудники и Почасовая Оплата",
+    staffSubtitle: "Ежедневные смены, отлучки, полученные авансы и расчетная ведомость",
     
     superAdmin: "Супер Админ (Руководитель)",
     adminKassir: "Администратор (Кассир)",

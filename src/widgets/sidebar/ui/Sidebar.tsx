@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   Users,
   Wallet,
+  UserCheck,
   Settings,
 } from 'lucide-react';
 
@@ -85,6 +86,13 @@ export default function Sidebar() {
       path: '/cashier',
       label: t.cashier,
       icon: Wallet,
+      badge: null,
+    },
+    {
+      id: 'staff',
+      path: '/staff',
+      label: t.staff || 'Xodimlar',
+      icon: UserCheck,
       badge: null,
     },
     {
