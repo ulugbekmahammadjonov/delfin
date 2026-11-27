@@ -1,6 +1,6 @@
 import React from 'react';
-import { Routes, Route, Navigate, Link } from 'react-router-dom';
-import { AppProvider, useApp } from '@/app/providers/AppContext';
+import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { AppProvider, AuthProvider, useApp, useAuth } from '@/app/providers';
 import { Header, Sidebar, ReceiptModal, MiniBarModal, ShiftCloseModal } from '@/widgets';
 import {
   DashboardPage,
@@ -11,6 +11,7 @@ import {
   CashierPage,
   StaffPage,
   SettingsPage,
+  LoginPage,
 } from '@/pages';
 
 import {
@@ -22,7 +23,30 @@ import {
   Wallet,
   UserCheck,
   Settings,
+  Loader2,
 } from 'lucide-react';
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isAuthLoading } = useAuth();
+  const location = useLocation();
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="flex flex-col items-center gap-3 text-slate-500 dark:text-slate-400">
+          <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+          <span className="text-xs font-semibold">Sessiya tekshirilmoqda...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  return <>{children}</>;
+}
 
 function MainLayout() {
   const { currentTab } = useApp();
@@ -93,8 +117,20 @@ function MainLayout() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <MainLayout />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/*"
+            element={
+              <RequireAuth>
+                <MainLayout />
+              </RequireAuth>
+            }
+          />
+        </Routes>
+      </AppProvider>
+    </AuthProvider>
   );
 }

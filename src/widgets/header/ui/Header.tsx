@@ -1,5 +1,5 @@
-import React from 'react';
-import { useApp } from '@/app/providers/AppContext';
+import React, { useState } from 'react';
+import { useApp, useAuth } from '@/app/providers';
 import { LangType } from '@/shared/types';
 import {
   Moon,
@@ -14,6 +14,7 @@ import {
   Users,
   RotateCcw,
   PanelLeft,
+  LogOut,
 } from 'lucide-react';
 
 export default function Header() {
@@ -34,6 +35,17 @@ export default function Header() {
     isSidebarCollapsed,
     toggleSidebar,
   } = useApp();
+  const { user, logout } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   const overtimeSessions = sessions.filter((s) => s.status === 'overtime');
   const activeSessions = sessions.filter((s) => s.status === 'active');
@@ -175,7 +187,7 @@ export default function Header() {
           </div>
 
           {/* Role Switcher Pill */}
-          <div className="flex items-center pl-1">
+          <div className="flex items-center gap-1.5 pl-1">
             <button
               onClick={() => setUserRole(userRole === 'super_admin' ? 'admin' : 'super_admin')}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
@@ -188,14 +200,28 @@ export default function Header() {
               {userRole === 'super_admin' ? (
                 <>
                   <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                  <span className="hidden md:inline font-semibold">Super Admin</span>
+                  <span className="hidden md:inline font-semibold">
+                    {user?.username ? `${user.username} (Super Admin)` : 'Super Admin'}
+                  </span>
                 </>
               ) : (
                 <>
                   <UserCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="hidden md:inline font-semibold">Kassir</span>
+                  <span className="hidden md:inline font-semibold">
+                    {user?.username ? `${user.username} (Kassir)` : 'Kassir'}
+                  </span>
                 </>
               )}
+            </button>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="p-2 rounded-lg text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 dark:text-rose-400 dark:border-rose-800 transition-colors disabled:opacity-50"
+              title="Tizimdan chiqish (Logout)"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
